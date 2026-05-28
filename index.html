@@ -66,8 +66,12 @@
   .toggle-row input { width: 16px; height: 16px; accent-color: var(--red); cursor: pointer; }
   .toggle-row label { font-size: 14px; cursor: pointer; }
 
+  .run-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: stretch; }
+  .prompt-input { flex: 1; min-width: 240px; border: 1px solid var(--line2); border-radius: 3px; padding: 0 14px; font-size: 14px; font-family: inherit; height: 48px; }
+  .prompt-input:focus { outline: none; border-color: var(--ink); }
+
   .btn { display: inline-flex; align-items: center; gap: 8px; border-radius: 3px; cursor: pointer; font-family: inherit; font-weight: 500; border: none; transition: all .12s; }
-  .btn-primary { background: var(--red); color: #fff; padding: 14px 24px; font-size: 14px; }
+  .btn-primary { background: var(--red); color: #fff; padding: 14px 24px; font-size: 14px; white-space: nowrap; }
   .btn-primary:hover { background: var(--red-dk); }
   .btn-dark { background: var(--ink); color: var(--bg); padding: 12px 20px; font-size: 14px; }
   .btn-dark:hover { background: #44403C; }
@@ -86,21 +90,11 @@
   .result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
   @media (max-width: 640px){ .result-grid { grid-template-columns: 1fr; } }
   .res-label { font-size: 10px; text-transform: uppercase; letter-spacing: .15em; color: var(--muted); margin-bottom: 8px; display:flex; align-items:center; gap: 8px; }
-  .res-img { width: 100%; aspect-ratio: 1; object-fit: contain; border: 1px solid var(--line); border-radius: 3px; }
+  .res-img { width: 100%; max-height: 560px; object-fit: contain; border: 1px solid var(--line); border-radius: 3px; }
   .res-img.white-bg { background: #fff; }
   .checker { background-image: linear-gradient(45deg, #E7E5E4 25%, transparent 25%), linear-gradient(-45deg, #E7E5E4 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #E7E5E4 75%), linear-gradient(-45deg, transparent 75%, #E7E5E4 75%); background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0; background-color: var(--bg); }
 
-  .tune { margin-top: 24px; padding: 20px; background: #fff; border: 1px solid var(--line2); border-radius: 3px; }
-  .tune-title { font-size: 10px; text-transform: uppercase; letter-spacing: .15em; color: var(--muted); margin-bottom: 16px; display:flex; align-items:center; gap:8px; }
-  .tune-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-  @media (max-width: 640px){ .tune-grid { grid-template-columns: 1fr; } }
-  .slider-row { display:flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
-  .slider-row label { font-size: 12px; font-weight: 500; }
-  .slider-row span { font-size: 11px; color: var(--muted); }
-  input[type=range] { width: 100%; accent-color: var(--red); }
-  .slider-hint { font-size: 10px; color: var(--muted); margin-top: 6px; }
-
-  .actions { margin-top: 24px; display: flex; flex-wrap: wrap; gap: 12px; }
+  .actions { margin-top: 28px; display: flex; flex-wrap: wrap; gap: 12px; }
   .info-box { margin-top: 20px; padding: 16px; background: var(--amber-bg); border-left: 2px solid var(--amber-line); border-radius: 3px; }
   .info-title { font-size: 10px; text-transform: uppercase; letter-spacing: .15em; font-weight: 700; color: var(--amber-ink); margin-bottom: 8px; display:flex; align-items:center; gap:6px; }
   .info-box ul { list-style: none; font-size: 12px; color: #44403C; line-height: 1.7; }
@@ -164,7 +158,7 @@
   <!-- ===== APP ===== -->
   <section id="app" class="hidden">
     <p class="lead">평컷을 올리면, 마네킹 입체 컷의 투명 PNG로 변환합니다.</p>
-    <p class="sub">앞 컷만 올리면 앞면 1장, 앞·뒤 둘 다 올리면 <b>앞면·뒷면 결과를 각각 따로</b> 생성합니다. 지퍼는 완전히 잠근 상태로, 제품 외 배경은 정확히 투명 처리돼요.</p>
+    <p class="sub">앞·뒤를 함께 올리면 앞면·뒷면 결과를 각각 생성합니다. 배경은 자동으로 투명 처리되고, 출력은 원본 비율·크기를 유지해요.</p>
 
     <div id="errBox" class="err hidden">
       <span>⚠️</span>
@@ -227,8 +221,12 @@
           <label for="zipToggle">지퍼/여밈 완전히 잠그기 (fully zipped)</label>
         </div>
       </div>
-      <div style="margin-top:24px;">
-        <button id="generateBtn" class="btn btn-primary">✨ 마네킹 변환 실행 →</button>
+      <div class="cfg-group">
+        <div class="cfg-label">실행 + 추가 프롬프트</div>
+        <div class="run-row">
+          <input id="extraPrompt" class="prompt-input" placeholder="추가 프롬프트 (선택) — 예: 소매 살짝 벌리기 / 광택 줄이기 / 칼라 더 세우기" />
+          <button id="generateBtn" class="btn btn-primary">✨ 마네킹 변환 실행 →</button>
+        </div>
         <p class="hint num">앞면(+뒷면) 각 약 5–15초 · 이미지당 약 $0.04 (신규 $300 크레딧 적용 시 사실상 무료)</p>
       </div>
     </div>
@@ -237,23 +235,6 @@
     <div id="resultSection" class="hidden">
       <div class="step-head"><span class="step-num num">03</span><span class="step-label">결과</span></div>
       <div id="resultsContainer"></div>
-
-      <div class="tune">
-        <div class="tune-title">⚙ 배경 제거 미세 조정 (모든 결과 공통)</div>
-        <div class="tune-grid">
-          <div>
-            <div class="slider-row"><label>흰색 감지 강도</label><span id="thrVal" class="num">245</span></div>
-            <input id="thrSlider" type="range" min="200" max="255" value="245" />
-            <div class="slider-hint">높을수록 더 깨끗한 흰색만 제거 (제품 색 보존 ↑)</div>
-          </div>
-          <div>
-            <div class="slider-row"><label>가장자리 부드럽게</label><span id="softVal" class="num">14</span></div>
-            <input id="softSlider" type="range" min="0" max="30" value="14" />
-            <div class="slider-hint">제품 외곽선 안티앨리어싱 처리 (자연스러움 ↑)</div>
-          </div>
-        </div>
-        <button id="reprocessBtn" class="btn btn-ghost btn-sm" style="margin-top:16px;">↻ 적용해서 다시 처리</button>
-      </div>
 
       <div class="actions">
         <button id="downloadAllBtn" class="btn btn-dark">⬇ 전체 PNG 저장</button>
@@ -265,9 +246,9 @@
         <div class="info-title">ⓘ 알아두기</div>
         <ul>
           <li>· Gemini 출력에는 보이지 않는 <b>SynthID 워터마크</b>가 포함됩니다 (Google 정책)</li>
-          <li>· 지퍼가 덜 잠겼으면 <b>재생성</b> — AI 출력은 매번 조금씩 달라요</li>
-          <li>· 흰색 많은 제품은 <b>흰색 감지 강도 248~252</b>, 어두운 제품은 <b>255</b> 권장</li>
-          <li>· 각 결과 아래 버튼으로 <b>앞면·뒷면을 따로 저장</b>할 수 있어요</li>
+          <li>· 배경은 <b>자동으로 투명 처리</b>됩니다 (별도 조절 불필요)</li>
+          <li>· 출력은 업로드한 <b>원본 비율·크기</b>를 따라갑니다</li>
+          <li>· 세부 조정은 <b>추가 프롬프트</b>에 적고 재생성하세요 (AI 출력은 매번 조금씩 달라요)</li>
         </ul>
       </div>
     </div>
@@ -280,13 +261,28 @@
 const STORAGE_KEY = 'ssaka_gemini_key_v1';
 const GEMINI_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent';
 
+// Fixed, auto-applied transparency defaults (no user adjustment)
+const THRESHOLD = 245;
+const SOFTNESS = 14;
+
+// Gemini-supported aspect ratios → keep output close to the original
+const SUPPORTED_RATIOS = [
+  { s:'1:1', v:1 }, { s:'4:5', v:0.8 }, { s:'5:4', v:1.25 }, { s:'3:4', v:0.75 },
+  { s:'4:3', v:1.3333 }, { s:'2:3', v:0.6667 }, { s:'3:2', v:1.5 },
+  { s:'9:16', v:0.5625 }, { s:'16:9', v:1.7778 }, { s:'21:9', v:2.3333 },
+];
+function nearestRatio(w, h){
+  if (!w || !h) return '1:1';
+  const r = w / h; let best = SUPPORTED_RATIOS[0], bd = Infinity;
+  for (const o of SUPPORTED_RATIOS){ const d = Math.abs(o.v - r); if (d < bd){ bd = d; best = o; } }
+  return best.s;
+}
+
 const state = {
   apiKey: '',
-  front: null,
+  front: null,   // { preview, base64, mediaType, name, sizeMB, w, h }
   back: null,
-  results: [],   // [{ view:'front'|'back', raw, transparent }]
-  threshold: 245,
-  softness: 14,
+  results: [],   // [{ view, raw, transparent }]
   config: { mannequinType: 'invisible', lighting: 'studio', zipClosed: true },
   busy: false,
 };
@@ -350,7 +346,7 @@ function renderCards(){
   }
 }
 
-// ───── Generic uploader ─────
+// ───── Generic uploader (captures natural dimensions) ─────
 function makeUploader(cfg){
   const dz = $(cfg.dz), fileInput = $(cfg.fileInput);
   const accept = (file) => {
@@ -361,12 +357,20 @@ function makeUploader(cfg){
     const reader = new FileReader();
     reader.onload = (e) => {
       const result = e.target.result;
-      state[cfg.stateKey] = { preview: result, base64: result.split(',')[1], mediaType: file.type, name: file.name, sizeMB: (file.size/1024/1024).toFixed(2) };
-      $(cfg.previewImg).src = result;
-      $(cfg.fileName).textContent = file.name + ' · ' + state[cfg.stateKey].sizeMB + ' MB';
-      $(cfg.dz).classList.add('hidden');
-      $(cfg.preview).classList.remove('hidden');
-      refreshReady();
+      const probe = new Image();
+      probe.onload = () => {
+        state[cfg.stateKey] = {
+          preview: result, base64: result.split(',')[1], mediaType: file.type,
+          name: file.name, sizeMB: (file.size/1024/1024).toFixed(2),
+          w: probe.naturalWidth, h: probe.naturalHeight,
+        };
+        $(cfg.previewImg).src = result;
+        $(cfg.fileName).textContent = file.name + ' · ' + probe.naturalWidth + '×' + probe.naturalHeight;
+        $(cfg.dz).classList.add('hidden');
+        $(cfg.preview).classList.remove('hidden');
+        refreshReady();
+      };
+      probe.src = result;
     };
     reader.readAsDataURL(file);
   };
@@ -390,13 +394,14 @@ function refreshReady(){
   $('generateBtn').disabled = !state.front || state.busy;
 }
 
-// ───── Prompt (per view, 3D + zip) ─────
+// ───── Prompt ─────
 function buildPrompt(view){
   const mt = OPTIONS.mannequin.find(m => m.id === state.config.mannequinType);
   const lt = OPTIONS.lighting.find(l => l.id === state.config.lighting);
   const isGhost = state.config.mannequinType === 'invisible';
   const hasBack = !!state.back;
   const zip = state.config.zipClosed;
+  const extra = ($('extraPrompt').value || '').trim();
 
   const viewBlock = view === 'front'
     ? `=== VIEW: FRONT ===
@@ -424,7 +429,14 @@ Reproduce premium sportswear e-commerce ghost-mannequin (hollow-man / invisible-
 ` + (view === 'front'
       ? `- The collar opening reveals the INNER BACK of the neckline (classic ghost-mannequin neck-join) so it looks genuinely hollow and worn.`
       : `- Show a clean dimensional outer back with the same filled, rounded volume.`) + `
-- Realistic soft studio shadows and gentle fabric sheen that convey real depth and the smooth track-jacket material. Crisp clean edges, sharp focus, high resolution. Match the dimensional quality of a professional sportswear catalog ghost-mannequin shot.`
+- Realistic soft studio shadows and gentle fabric sheen that convey real depth and the material. Crisp clean edges, sharp focus, high resolution. Match the dimensional quality of a professional sportswear catalog ghost-mannequin shot.`
+    : '';
+
+  const extraBlock = extra
+    ? `
+
+=== ADDITIONAL USER INSTRUCTIONS (반드시 위 규칙을 지키면서 반영) ===
+${extra}`
     : '';
 
   return `Transform the attached flat-lay product photograph(s) into a professional e-commerce product shot displayed on ${mt.desc}.
@@ -440,16 +452,19 @@ SHOT COMPOSITION:
 - ${lt.desc}
 - Pure white seamless cyclorama background (#FFFFFF), completely clean
 - Subject fully visible, centered, with comfortable margin on all edges
+- Keep the same overall proportions and framing as the input image (do NOT crop into a square if the input is portrait or landscape)
 
 3D / 입체감 (필수):
 - STRONG realistic three-dimensional volume — fully dimensional and worn, NEVER flat or like a pasted cut-out.
-- Natural fabric tension, drape, folds, soft self-shadows; believable thickness at edges, collar, shoulders, cuffs and hem.${zipBlock}${ghostBlock}
+- Natural fabric tension, drape, folds, soft self-shadows; believable thickness at edges, collar, shoulders, cuffs and hem.${zipBlock}${ghostBlock}${extraBlock}
 
 OUTPUT: A single high-quality photorealistic product image, no text, no captions, no borders.`;
 }
 
-// ───── Single Gemini call returning a data URL ─────
+// ───── Single Gemini call → data URL ─────
 async function callGemini(view){
+  const primary = view === 'front' ? state.front : state.back;
+  const ratio = nearestRatio(primary.w, primary.h);
   const parts = [{ text: buildPrompt(view) }];
   if (view === 'front'){
     parts.push({ inline_data: { mime_type: state.front.mediaType, data: state.front.base64 } });
@@ -463,7 +478,7 @@ async function callGemini(view){
     headers: { 'Content-Type': 'application/json', 'x-goog-api-key': state.apiKey },
     body: JSON.stringify({
       contents: [{ parts: parts }],
-      generationConfig: { responseModalities: ['IMAGE'], imageConfig: { aspectRatio: '1:1' } },
+      generationConfig: { responseModalities: ['IMAGE'], imageConfig: { aspectRatio: ratio } },
     }),
   });
   if (!res.ok){
@@ -482,7 +497,52 @@ async function callGemini(view){
   return 'data:' + mt + ';base64,' + b64;
 }
 
-// ───── Generate (front always; back if uploaded) ─────
+// ───── Background removal + resize to original dimensions ─────
+function removeWhiteBackground(dataUrl, threshold, softness, targetW, targetH){
+  return new Promise((resolve, reject) => {
+    const img = new Image(); img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width; canvas.height = img.height;
+        const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0);
+        const imageData = ctx.getImageData(0, 0, img.width, img.height);
+        const data = imageData.data; const W = img.width, H = img.height;
+        const visited = new Uint8Array(W*H); const stack = [];
+        for (let x=0;x<W;x++){ stack.push(x,0); stack.push(x,H-1); }
+        for (let y=0;y<H;y++){ stack.push(0,y); stack.push(W-1,y); }
+        const lowBound = threshold - softness;
+        while (stack.length){
+          const y = stack.pop(), x = stack.pop();
+          if (x<0||x>=W||y<0||y>=H) continue;
+          const idx = y*W+x; if (visited[idx]) continue;
+          const p = idx*4; const minC = Math.min(data[p],data[p+1],data[p+2]);
+          if (minC < lowBound) continue;
+          visited[idx] = 1;
+          if (minC >= threshold){ data[p+3] = 0; }
+          else { const t = softness>0 ? (minC-lowBound)/softness : 1; data[p+3] = Math.round(255*(1-t)); }
+          stack.push(x+1,y); stack.push(x-1,y); stack.push(x,y+1); stack.push(x,y-1);
+        }
+        ctx.putImageData(imageData, 0, 0);
+
+        // Resize to original dimensions if provided
+        let out = canvas;
+        if (targetW && targetH && (targetW !== W || targetH !== H)){
+          const oc = document.createElement('canvas');
+          oc.width = targetW; oc.height = targetH;
+          const octx = oc.getContext('2d');
+          octx.imageSmoothingQuality = 'high';
+          octx.drawImage(canvas, 0, 0, targetW, targetH);
+          out = oc;
+        }
+        resolve(out.toDataURL('image/png'));
+      } catch(e){ reject(e); }
+    };
+    img.onerror = reject; img.src = dataUrl;
+  });
+}
+
+// ───── Generate ─────
 async function generate(){
   if (!state.apiKey){ showError('Gemini API 키를 먼저 입력해주세요'); return; }
   if (!state.front || state.busy) return;
@@ -494,7 +554,7 @@ async function generate(){
     // FRONT
     setGenerating(true, state.back ? '앞면 생성 중... (1/2)' : '앞면 생성 중...');
     const frontRaw = await callGemini('front');
-    const frontTr = await removeWhiteBackground(frontRaw, state.threshold, state.softness);
+    const frontTr = await removeWhiteBackground(frontRaw, THRESHOLD, SOFTNESS, state.front.w, state.front.h);
     state.results.push({ view:'front', raw:frontRaw, transparent:frontTr });
     renderResults();
 
@@ -502,7 +562,7 @@ async function generate(){
     if (state.back){
       setGenerating(true, '뒷면 생성 중... (2/2)');
       const backRaw = await callGemini('back');
-      const backTr = await removeWhiteBackground(backRaw, state.threshold, state.softness);
+      const backTr = await removeWhiteBackground(backRaw, THRESHOLD, SOFTNESS, state.back.w, state.back.h);
       state.results.push({ view:'back', raw:backRaw, transparent:backTr });
       renderResults();
     }
@@ -537,7 +597,7 @@ function renderResults(){
           '<img class="res-img white-bg" src="' + r.raw + '" alt="raw">' +
         '</div>' +
         '<div>' +
-          '<div class="res-label">TRANSPARENT · 투명 PNG</div>' +
+          '<div class="res-label">TRANSPARENT · 투명 PNG · 원본 크기</div>' +
           '<img class="res-img checker" src="' + r.transparent + '" alt="transparent">' +
           '<button class="btn btn-dark btn-sm dl-btn" data-i="' + i + '" style="margin-top:10px;">⬇ ' + dlLabel + ' PNG 저장</button>' +
         '</div>' +
@@ -545,54 +605,6 @@ function renderResults(){
     c.appendChild(block);
   });
   c.querySelectorAll('.dl-btn').forEach(btn => { btn.onclick = () => downloadResult(+btn.dataset.i); });
-}
-
-// ───── Background removal (edge flood fill) ─────
-function removeWhiteBackground(dataUrl, threshold, softness){
-  return new Promise((resolve, reject) => {
-    const img = new Image(); img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      try {
-        const canvas = document.createElement('canvas');
-        canvas.width = img.width; canvas.height = img.height;
-        const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0);
-        const imageData = ctx.getImageData(0, 0, img.width, img.height);
-        const data = imageData.data; const W = img.width, H = img.height;
-        const visited = new Uint8Array(W*H); const stack = [];
-        for (let x=0;x<W;x++){ stack.push(x,0); stack.push(x,H-1); }
-        for (let y=0;y<H;y++){ stack.push(0,y); stack.push(W-1,y); }
-        const lowBound = threshold - softness;
-        while (stack.length){
-          const y = stack.pop(), x = stack.pop();
-          if (x<0||x>=W||y<0||y>=H) continue;
-          const idx = y*W+x; if (visited[idx]) continue;
-          const p = idx*4; const minC = Math.min(data[p],data[p+1],data[p+2]);
-          if (minC < lowBound) continue;
-          visited[idx] = 1;
-          if (minC >= threshold){ data[p+3] = 0; }
-          else { const t = softness>0 ? (minC-lowBound)/softness : 1; data[p+3] = Math.round(255*(1-t)); }
-          stack.push(x+1,y); stack.push(x-1,y); stack.push(x,y+1); stack.push(x,y-1);
-        }
-        ctx.putImageData(imageData, 0, 0);
-        resolve(canvas.toDataURL('image/png'));
-      } catch(e){ reject(e); }
-    };
-    img.onerror = reject; img.src = dataUrl;
-  });
-}
-
-async function reprocessAll(){
-  if (!state.results.length || state.busy) return;
-  state.busy = true;
-  const btn = $('reprocessBtn'); const old = btn.innerHTML;
-  btn.disabled = true; btn.innerHTML = '<span class="spin">◌</span> 처리 중...';
-  try {
-    for (const r of state.results){
-      r.transparent = await removeWhiteBackground(r.raw, state.threshold, state.softness);
-    }
-    renderResults();
-  } catch(e){ showError('배경 처리 실패'); }
-  finally { state.busy = false; btn.disabled = false; btn.innerHTML = old; }
 }
 
 function downloadResult(i){
@@ -627,14 +639,11 @@ function init(){
   makeUploader({ stateKey:'back', dz:'backDropzone', fileInput:'backFileInput', preview:'backPreview', previewImg:'backPreviewImg', clearBtn:'backClearBtn', fileName:'backFileName' });
 
   $('zipToggle').onchange = (e) => { state.config.zipClosed = e.target.checked; };
+  $('extraPrompt').addEventListener('keydown', (e) => { if (e.key === 'Enter') generate(); });
   $('generateBtn').onclick = generate;
   $('regenBtn').onclick = generate;
   $('resetBtn').onclick = resetAll;
   $('downloadAllBtn').onclick = downloadAll;
-  $('reprocessBtn').onclick = reprocessAll;
-
-  $('thrSlider').oninput = (e) => { state.threshold = +e.target.value; $('thrVal').textContent = e.target.value; };
-  $('softSlider').oninput = (e) => { state.softness = +e.target.value; $('softVal').textContent = e.target.value; };
 
   refreshReady();
 }
