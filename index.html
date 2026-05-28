@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SSAKA STUDIO · 마네킹 컨버터</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap" />
+<style>
+  :root {
+    --bg: #FAFAF7;
+    --ink: #1C1917;
+    --muted: #78716C;
+    --faint: #A8A29E;
+    --line: #E7E5E4;
+    --line2: #D6D3D1;
+    --white: #FFFFFF;
+    --red: #B91C1C;
+    --red-dk: #991B1B;
+    --amber-bg: #FEF3C7;
+    --amber-line: #B45309;
+    --amber-ink: #92400E;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .serif { font-family: 'Instrument Serif', serif; }
+  .num { font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+  a { color: inherit; }
+
+  header {
+    border-bottom: 1px solid var(--line);
+    background: rgba(250,250,247,0.85);
+    backdrop-filter: blur(8px);
+    position: sticky; top: 0; z-index: 10;
+  }
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 0 24px; }
+  .head-row { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 20px 0; }
+  .kicker { font-size: 12px; letter-spacing: 0.2em; color: var(--muted); }
+  .dot { display: inline-block; width: 4px; height: 4px; border-radius: 50%; background: var(--faint); margin: 0 8px; vertical-align: middle; }
+  h1.title { font-family: 'Instrument Serif', serif; font-size: 36px; margin-top: 4px; line-height: 1; letter-spacing: -0.01em; font-weight: 400; }
+  h1.title em { font-style: italic; }
+
+  main { max-width: 1000px; margin: 0 auto; padding: 40px 24px; }
+
+  .lead { font-family: 'Instrument Serif', serif; font-style: italic; font-size: 20px; color: var(--muted); line-height: 1.3; max-width: 620px; }
+  .sub { font-size: 14px; color: var(--muted); margin-top: 12px; line-height: 1.6; max-width: 620px; }
+
+  .step-head { display: flex; align-items: baseline; gap: 16px; border-bottom: 1px solid var(--line2); padding-bottom: 12px; margin-top: 40px; }
+  .step-num { font-family: 'Instrument Serif', serif; font-size: 30px; color: var(--faint); }
+  .step-label { font-size: 14px; font-weight: 500; letter-spacing: 0.02em; }
+
+  .card-box { border: 1px solid var(--line2); background: var(--white); padding: 32px; border-radius: 3px; }
+
+  /* Upload */
+  .dropzone {
+    margin-top: 16px; border: 2px dashed var(--line2); border-radius: 3px;
+    padding: 48px 24px; text-align: center; cursor: pointer; transition: all .15s; background: var(--white);
+  }
+  .dropzone:hover { border-color: var(--muted); }
+  .dropzone.drag { border-color: var(--red); background: #FEF2F2; }
+  .dz-title { color: #44403C; font-weight: 500; margin-top: 12px; }
+  .dz-sub { font-size: 12px; color: var(--muted); margin-top: 8px; }
+
+  .upload-grid { margin-top: 16px; display: grid; grid-template-columns: 240px 1fr; gap: 24px; align-items: start; }
+  @media (max-width: 640px){ .upload-grid { grid-template-columns: 1fr; } }
+  .thumb-wrap { position: relative; }
+  .thumb { width: 100%; aspect-ratio: 1; object-fit: cover; border: 1px solid var(--line); border-radius: 3px; background: #fff; }
+  .x-btn { position: absolute; top: 8px; right: 8px; width: 32px; height: 32px; border-radius: 50%; background: rgba(28,25,23,.8); color:#fff; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .x-btn:hover { background: var(--ink); }
+  .file-label { font-size: 10px; color: var(--faint); letter-spacing: .12em; text-transform: uppercase; margin-bottom: 4px; }
+  .file-name { font-size: 14px; font-weight: 500; }
+  .file-size { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  /* Config */
+  .cfg-group { margin-top: 24px; }
+  .cfg-label { font-size: 10px; text-transform: uppercase; letter-spacing: .15em; font-weight: 600; color: var(--muted); margin-bottom: 10px; }
+  .cfg-cards { display: flex; flex-wrap: wrap; gap: 8px; }
+  .cfg-card {
+    padding: 10px 16px; font-size: 14px; border: 1px solid var(--line2); background: #fff; color: #44403C;
+    border-radius: 3px; cursor: pointer; text-align: left; transition: all .12s; font-family: inherit;
+  }
+  .cfg-card:hover { border-color: var(--muted); }
+  .cfg-card.sel { border-color: var(--ink); background: var(--ink); color: var(--bg); }
+  .cfg-card .lab { font-weight: 500; }
+  .cfg-card .sub { font-size: 10px; margin-top: 2px; color: var(--faint); letter-spacing: .03em; }
+
+  /* Buttons */
+  .btn { display: inline-flex; align-items: center; gap: 8px; border-radius: 3px; cursor: pointer; font-family: inherit; font-weight: 500; border: none; transition: all .12s; }
+  .btn-primary { background: var(--red); color: #fff; padding: 14px 24px; font-size: 14px; }
+  .btn-primary:hover { background: var(--red-dk); }
+  .btn-dark { background: var(--ink); color: var(--bg); padding: 12px 20px; font-size: 14px; }
+  .btn-dark:hover { background: #44403C; }
+  .btn-ghost { background: #fff; color: #44403C; border: 1px solid var(--line2); padding: 12px 16px; font-size: 14px; }
+  .btn-ghost:hover { background: #F5F5F4; }
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+
+  .hint { font-size: 11px; color: var(--muted); margin-top: 12px; }
+
+  /* Error */
+  .err { margin-top: 24px; display: flex; gap: 12px; padding: 16px; border: 1px solid #FECACA; background: #FEF2F2; color: #991B1B; font-size: 14px; border-radius: 3px; }
+  .err b { display:block; margin-bottom: 2px; }
+
+  /* Result */
+  .result-grid { margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  @media (max-width: 640px){ .result-grid { grid-template-columns: 1fr; } }
+  .res-label { font-size: 10px; text-transform: uppercase; letter-spacing: .15em; color: var(--muted); margin-bottom: 8px; display:flex; align-items:center; gap: 8px; }
+  .res-img { width: 100%; aspect-ratio: 1; object-fit: contain; border: 1px solid var(--line); border-radius: 3px; }
+  .res-img.white-bg { background: #fff; }
+  .checker {
+    background-image:
+      linear-gradient(45deg, #E7E5E4 25%, transparent 25%),
+      linear-gradient(-45deg, #E7E5E4 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #E7E5E4 75%),
+      linear-gradient(-45deg, transparent 75%, #E7E5E4 75%);
+    background-size: 20px 20px;
+    background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+    background-color: var(--bg);
+  }
+  .placeholder { width:100%; aspect-ratio:1; border:1px solid var(--line); border-radius:3px; display:flex; align-items:center; justify-content:center; }
+
+  /* Sliders */
+  .tune { margin-top: 24px; padding: 20px; background: #fff; border: 1px solid var(--line2); border-radius: 3px; }
+  .tune-title { font-size: 10px; text-transform: uppercase; letter-spacing: .15em; color: var(--muted); margin-bottom: 16px; display:flex; align-items:center; gap:8px; }
+  .tune-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 640px){ .tune-grid { grid-template-columns: 1fr; } }
+  .slider-row { display:flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+  .slider-row label { font-size: 12px; font-weight: 500; }
+  .slider-row span { font-size: 11px; color: var(--muted); }
+  input[type=range] { width: 100%; accent-color: var(--red); }
+  .slider-hint { font-size: 10px; color: var(--muted); margin-top: 6px; }
+
+  .actions { margin-top: 24px; display: flex; flex-wrap: wrap; gap: 12px; }
+
+  .info-box { margin-top: 20px; padding: 16px; background: var(--amber-bg); border-left: 2px solid var(--amber-line); border-radius: 3px; }
+  .info-title { font-size: 10px; text-transform: uppercase; letter-spacing: .15em; font-weight: 700; color: var(--amber-ink); margin-bottom: 8px; display:flex; align-items:center; gap:6px; }
+  .info-box ul { list-style: none; font-size: 12px; color: #44403C; line-height: 1.7; }
+
+  footer { border-top: 1px solid var(--line); padding-top: 24px; margin-top: 64px; font-size: 12px; color: var(--faint); letter-spacing: .02em; }
+
+  /* API key setup */
+  .key-input-row { display: flex; gap: 8px; margin-top: 4px; }
+  .key-input-wrap { flex: 1; position: relative; }
+  .key-input { width: 100%; border: 1px solid var(--line2); border-radius: 3px; padding: 11px 40px 11px 12px; font-size: 14px; font-family: ui-monospace, monospace; }
+  .key-input:focus { outline: none; border-color: var(--ink); }
+  .eye-btn { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--faint); padding: 4px; }
+  .key-steps { font-size: 12px; color: #57534E; line-height: 1.7; margin: 16px 0; padding-left: 18px; }
+  .key-steps a { text-decoration: underline; }
+  .key-steps a:hover { color: var(--red); }
+
+  .spin { animation: spin 1s linear infinite; display:inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .icon { width: 16px; height: 16px; flex-shrink: 0; }
+  .icon-sm { width: 13px; height: 13px; }
+  .hidden { display: none !important; }
+  .change-key { font-size: 10px; color: var(--faint); background:none; border:none; cursor:pointer; display:flex; align-items:center; gap:4px; }
+  .change-key:hover { color: var(--red); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="head-row wrap">
+    <div>
+      <div class="kicker num">SSAKA / STUDIO<span class="dot"></span><span style="font-size:12px">mannequin converter</span></div>
+      <h1 class="title">평컷 → <em>마네킹</em> 투명 PNG</h1>
+    </div>
+    <button id="changeKeyBtn" class="change-key hidden" title="API 키 변경">🔑 키 변경</button>
+  </div>
+</header>
+
+<main>
+  <!-- ===== API KEY SETUP ===== -->
+  <section id="keySetup" style="max-width: 560px;">
+    <div class="card-box">
+      <div style="color:var(--muted); margin-bottom:12px;">🔑</div>
+      <h2 class="serif" style="font-size:26px; margin-bottom:8px; line-height:1.1;">Gemini API 키 설정</h2>
+      <p style="font-size:14px; color:#57534E; line-height:1.6; margin-bottom:16px;">
+        이 도구는 Google의 <b>Gemini 2.5 Flash Image (Nano Banana)</b>로 평컷을 마네킹 입체로 변환합니다.
+        무료 티어로 하루 약 500회 호출할 수 있어요.
+      </p>
+      <ol class="key-steps">
+        <li><a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a>에서 API 키 발급 (무료, Google 계정 필요)</li>
+        <li>아래에 붙여넣으면 이 브라우저에 저장됩니다</li>
+        <li>키는 외부로 전송되지 않고 Gemini 호출에만 직접 사용돼요</li>
+      </ol>
+      <div class="key-input-row">
+        <div class="key-input-wrap">
+          <input id="keyInput" class="key-input" type="password" placeholder="AIza..." />
+          <button id="eyeBtn" class="eye-btn" type="button">👁</button>
+        </div>
+        <button id="saveKeyBtn" class="btn btn-dark" style="padding:0 18px;">저장 →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== APP ===== -->
+  <section id="app" class="hidden">
+    <p class="lead">평컷 한 장을 올리면, 마네킹 입체 컷의 투명 PNG로 변환합니다.</p>
+    <p class="sub">Gemini Nano Banana로 마네킹 입체화 → 흰 배경 자동 투명화. 제품 원본 디자인은 100% 그대로 유지됩니다.</p>
+
+    <div id="errBox" class="err hidden">
+      <span>⚠️</span>
+      <div><b>문제가 생겼어요</b><span id="errMsg"></span></div>
+    </div>
+
+    <!-- STEP 1 -->
+    <div class="step-head"><span class="step-num num">01</span><span class="step-label">평컷 업로드</span></div>
+    <div id="dropzone" class="dropzone">
+      <div style="font-size:24px;">⬆</div>
+      <div class="dz-title">이미지를 드래그하거나 클릭해서 업로드</div>
+      <div class="dz-sub">JPG, PNG, WEBP · 7MB 이하 · 깨끗한 평컷 권장</div>
+      <input id="fileInput" type="file" accept="image/*" class="hidden" />
+    </div>
+    <div id="uploadPreview" class="upload-grid hidden">
+      <div class="thumb-wrap">
+        <img id="previewImg" class="thumb" alt="uploaded" />
+        <button id="clearImgBtn" class="x-btn">✕</button>
+      </div>
+      <div style="padding-top:4px;">
+        <div class="file-label num">파일</div>
+        <div id="fileName" class="file-name"></div>
+        <div id="fileSize" class="file-size num"></div>
+      </div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div id="configSection" class="hidden">
+      <div class="step-head"><span class="step-num num">02</span><span class="step-label">연출 설정</span></div>
+      <div class="cfg-group">
+        <div class="cfg-label">마네킹 타입</div>
+        <div id="mannequinCards" class="cfg-cards"></div>
+      </div>
+      <div class="cfg-group">
+        <div class="cfg-label">앵글</div>
+        <div id="angleCards" class="cfg-cards"></div>
+      </div>
+      <div class="cfg-group">
+        <div class="cfg-label">조명</div>
+        <div id="lightingCards" class="cfg-cards"></div>
+      </div>
+      <div style="margin-top:24px;">
+        <button id="generateBtn" class="btn btn-primary">✨ 마네킹 변환 실행 →</button>
+        <p class="hint num">약 5–15초 소요 · Gemini 무료 티어는 일 500회까지</p>
+      </div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div id="resultSection" class="hidden">
+      <div class="step-head"><span class="step-num num">03</span><span class="step-label">결과</span></div>
+      <div class="result-grid">
+        <div>
+          <div class="res-label">RAW · Gemini 원본 출력 (흰 배경)</div>
+          <img id="rawImg" class="res-img white-bg" alt="raw" />
+        </div>
+        <div>
+          <div class="res-label"><span>TRANSPARENT · 투명 PNG</span><span id="procSpin" class="hidden"><span class="spin">◌</span></span></div>
+          <img id="transparentImg" class="res-img checker hidden" alt="transparent" />
+          <div id="transparentPlaceholder" class="placeholder checker"><span class="spin" style="color:var(--faint)">◌</span></div>
+        </div>
+      </div>
+
+      <div class="tune">
+        <div class="tune-title">⚙ 배경 제거 미세 조정</div>
+        <div class="tune-grid">
+          <div>
+            <div class="slider-row"><label>흰색 감지 강도</label><span id="thrVal" class="num">238</span></div>
+            <input id="thrSlider" type="range" min="200" max="255" value="238" />
+            <div class="slider-hint">높을수록 더 깨끗한 흰색만 제거 (제품 색 보존 ↑)</div>
+          </div>
+          <div>
+            <div class="slider-row"><label>가장자리 부드럽게</label><span id="softVal" class="num">12</span></div>
+            <input id="softSlider" type="range" min="0" max="30" value="12" />
+            <div class="slider-hint">제품 외곽선 안티앨리어싱 처리 (자연스러움 ↑)</div>
+          </div>
+        </div>
+        <button id="reprocessBtn" class="btn btn-ghost btn-sm" style="margin-top:16px;">↻ 적용해서 다시 처리</button>
+      </div>
+
+      <div class="actions">
+        <button id="downloadBtn" class="btn btn-dark">⬇ 투명 PNG 저장</button>
+        <button id="regenBtn" class="btn btn-ghost">↻ 같은 설정으로 재생성</button>
+        <button id="resetBtn" class="btn btn-ghost">🗑 처음부터</button>
+      </div>
+
+      <div class="info-box">
+        <div class="info-title">ⓘ 알아두기</div>
+        <ul>
+          <li>· Gemini 출력에는 보이지 않는 <b>SynthID 워터마크</b>가 포함됩니다 (Google 정책)</li>
+          <li>· 결과가 아쉬우면 <b>같은 설정으로 재생성</b> — AI 출력은 매번 조금씩 달라요</li>
+          <li>· 제품에 흰색이 많으면 <b>흰색 감지 강도를 248~252로</b> 올려보세요</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <footer class="num">SSAKA STUDIO · 평컷을 마네킹으로 · powered by Gemini Nano Banana</footer>
+</main>
+
+<script>
+const STORAGE_KEY = 'ssaka_gemini_key_v1';
+const GEMINI_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent';
+
+const state = {
+  apiKey: '',
+  image: null,        // { preview, base64, mediaType, name, sizeMB }
+  rawImage: null,
+  transparentImage: null,
+  threshold: 238,
+  softness: 12,
+  config: { mannequinType: 'invisible', angle: 'front', lighting: 'studio' },
+  busy: false,
+};
+
+const OPTIONS = {
+  mannequin: [
+    { id: 'invisible', label: '투명 마네킹', sub: 'Ghost', desc: 'invisible mannequin (hollow garment with 3D body shape, no mannequin or body visible)' },
+    { id: 'fullbody', label: '전신 마네킹', sub: 'Full', desc: 'minimalist matte white full-body mannequin without facial features' },
+    { id: 'torso', label: '토르소', sub: 'Bust', desc: 'minimalist matte white torso/bust mannequin form' },
+    { id: 'hanger', label: '행거', sub: 'Hanger', desc: 'simple thin wire hanger, garment naturally draped' },
+  ],
+  angle: [
+    { id: 'front', label: '정면', desc: 'straight-on front view, perfectly centered, garment fully visible' },
+    { id: 'three-quarter', label: '3/4', desc: 'three-quarter angle view (subject turned approximately 30 degrees)' },
+    { id: 'side', label: '측면', desc: 'side profile view' },
+    { id: 'back', label: '후면', desc: 'back view' },
+  ],
+  lighting: [
+    { id: 'studio', label: '스튜디오', desc: 'even soft studio lighting from front, very subtle shadows under garment edges' },
+    { id: 'highkey', label: '하이키', desc: 'bright high-key lighting, virtually no shadows, clean and crisp' },
+    { id: 'dramatic', label: '드라마틱', desc: 'subtle directional rim light from upper side, gentle dimensional shadows' },
+  ],
+};
+
+const $ = (id) => document.getElementById(id);
+
+// ───── API key ─────
+function loadApiKey() {
+  try {
+    const v = localStorage.getItem(STORAGE_KEY);
+    if (v) state.apiKey = atob(v);
+  } catch (e) {}
+}
+function saveApiKey(key) {
+  const trimmed = (key || '').trim();
+  if (!trimmed) return;
+  try { localStorage.setItem(STORAGE_KEY, btoa(trimmed)); } catch (e) {}
+  state.apiKey = trimmed;
+  renderKeyState();
+}
+function clearApiKey() {
+  try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+  state.apiKey = '';
+  renderKeyState();
+}
+function renderKeyState() {
+  if (state.apiKey) {
+    $('keySetup').classList.add('hidden');
+    $('app').classList.remove('hidden');
+    $('changeKeyBtn').classList.remove('hidden');
+  } else {
+    $('keySetup').classList.remove('hidden');
+    $('app').classList.add('hidden');
+    $('changeKeyBtn').classList.add('hidden');
+  }
+}
+
+// ───── Error ─────
+function showError(msg) {
+  $('errMsg').textContent = ' ' + msg;
+  $('errBox').classList.remove('hidden');
+}
+function clearError() { $('errBox').classList.add('hidden'); }
+
+// ───── Config cards ─────
+function renderCards() {
+  const groups = [
+    { el: 'mannequinCards', key: 'mannequinType', opts: OPTIONS.mannequin },
+    { el: 'angleCards', key: 'angle', opts: OPTIONS.angle },
+    { el: 'lightingCards', key: 'lighting', opts: OPTIONS.lighting },
+  ];
+  for (const g of groups) {
+    const container = $(g.el);
+    container.innerHTML = '';
+    for (const opt of g.opts) {
+      const btn = document.createElement('button');
+      btn.className = 'cfg-card' + (state.config[g.key] === opt.id ? ' sel' : '');
+      btn.innerHTML = '<div class="lab">' + opt.label + '</div>' + (opt.sub ? '<div class="sub num">' + opt.sub + '</div>' : '');
+      btn.onclick = () => { state.config[g.key] = opt.id; renderCards(); };
+      container.appendChild(btn);
+    }
+  }
+}
+
+// ───── File handling ─────
+function handleFile(file) {
+  if (!file) return;
+  if (!file.type.startsWith('image/')) { showError('이미지 파일만 업로드 가능합니다'); return; }
+  if (file.size > 7 * 1024 * 1024) { showError('Gemini는 7MB 이하 이미지만 허용해요. 압축해서 올려주세요.'); return; }
+  clearError();
+  state.rawImage = null; state.transparentImage = null;
+  $('resultSection').classList.add('hidden');
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const result = e.target.result;
+    state.image = {
+      preview: result,
+      base64: result.split(',')[1],
+      mediaType: file.type,
+      name: file.name,
+      sizeMB: (file.size / 1024 / 1024).toFixed(2),
+    };
+    $('previewImg').src = result;
+    $('fileName').textContent = file.name;
+    $('fileSize').textContent = state.image.sizeMB + ' MB';
+    $('dropzone').classList.add('hidden');
+    $('uploadPreview').classList.remove('hidden');
+    $('configSection').classList.remove('hidden');
+  };
+  reader.readAsDataURL(file);
+}
+function clearImage() {
+  state.image = null; state.rawImage = null; state.transparentImage = null;
+  $('dropzone').classList.remove('hidden');
+  $('uploadPreview').classList.add('hidden');
+  $('configSection').classList.add('hidden');
+  $('resultSection').classList.add('hidden');
+  $('fileInput').value = '';
+  clearError();
+}
+
+// ───── Prompt ─────
+function buildPrompt() {
+  const mt = OPTIONS.mannequin.find(m => m.id === state.config.mannequinType);
+  const ang = OPTIONS.angle.find(a => a.id === state.config.angle);
+  const lt = OPTIONS.lighting.find(l => l.id === state.config.lighting);
+  return `Transform the attached flat-lay product photograph into a professional e-commerce product shot displayed on a ${mt.desc}.
+
+CRITICAL REQUIREMENTS — preserve the original product 100%:
+- Keep ALL original colors, logos, brand marks, prints, text, patterns, embroidery, trims, and stitching EXACTLY as in the input image
+- Do NOT add any new text, logos, labels, watermarks, or graphics
+- Do NOT change the design, cut, or proportions of the garment
+- Match the exact fabric color and material appearance
+
+SHOT COMPOSITION:
+- ${ang.desc}
+- ${lt.desc}
+- Pure white seamless cyclorama background (#FFFFFF), completely clean
+- Subject fully visible, centered, with comfortable margin around all edges
+- Natural fabric drape, folds, and dimensional volume showing the garment in 3D form
+- Photorealistic product photography quality, sharp focus on fabric texture
+- 1:1 square aspect ratio
+
+OUTPUT: A single high-quality product image, no text, no captions, no borders.`;
+}
+
+// ───── Generate ─────
+async function generate() {
+  if (!state.apiKey) { showError('Gemini API 키를 먼저 입력해주세요'); return; }
+  if (!state.image || state.busy) return;
+  state.busy = true;
+  clearError();
+  setGenerating(true, 'Gemini Nano Banana에 요청 중...');
+  $('resultSection').classList.add('hidden');
+
+  try {
+    const res = await fetch(GEMINI_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': state.apiKey },
+      body: JSON.stringify({
+        contents: [{ parts: [
+          { text: buildPrompt() },
+          { inline_data: { mime_type: state.image.mediaType, data: state.image.base64 } },
+        ]}],
+        generationConfig: { responseModalities: ['IMAGE'], imageConfig: { aspectRatio: '1:1' } },
+      }),
+    });
+
+    if (!res.ok) {
+      const t = await res.text();
+      let p; try { p = JSON.parse(t); } catch {}
+      throw new Error(p?.error?.message || t || ('HTTP ' + res.status));
+    }
+
+    const data = await res.json();
+    const parts = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) || [];
+    const imgPart = parts.find(p => (p.inlineData && p.inlineData.data) || (p.inline_data && p.inline_data.data));
+    const b64 = imgPart && (imgPart.inlineData ? imgPart.inlineData.data : imgPart.inline_data.data);
+    const mt = imgPart && (imgPart.inlineData ? imgPart.inlineData.mimeType : imgPart.inline_data.mime_type) || 'image/png';
+
+    if (!b64) {
+      const txt = parts.find(p => p.text);
+      throw new Error(txt ? ('이미지가 반환되지 않았어요. 모델 응답: "' + txt.text.slice(0,120) + '..."') : '이미지가 반환되지 않았어요. 다시 시도해주세요.');
+    }
+
+    const dataUrl = 'data:' + mt + ';base64,' + b64;
+    state.rawImage = dataUrl;
+    $('rawImg').src = dataUrl;
+    $('resultSection').classList.remove('hidden');
+    $('transparentImg').classList.add('hidden');
+    $('transparentPlaceholder').classList.remove('hidden');
+
+    setGenerating(true, '흰 배경을 투명하게 처리하는 중...');
+    const transparent = await removeWhiteBackground(dataUrl, state.threshold, state.softness);
+    state.transparentImage = transparent;
+    $('transparentImg').src = transparent;
+    $('transparentImg').classList.remove('hidden');
+    $('transparentPlaceholder').classList.add('hidden');
+  } catch (err) {
+    console.error(err);
+    let msg = err.message || '생성 실패';
+    if (msg.includes('Failed to fetch')) {
+      msg = '네트워크 요청이 차단됐어요. 이 파일을 로컬에서 직접 열면(file://) 차단될 수 있습니다. 아래 안내대로 배포하거나 로컬 서버로 실행해주세요.';
+    }
+    showError(msg);
+  } finally {
+    state.busy = false;
+    setGenerating(false);
+  }
+}
+
+function setGenerating(on, msg) {
+  const btn = $('generateBtn');
+  if (on) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spin">◌</span> ' + (msg || '처리 중...');
+  } else {
+    btn.disabled = false;
+    btn.innerHTML = '✨ 마네킹 변환 실행 →';
+  }
+}
+
+// ───── Background removal (edge flood fill) ─────
+function removeWhiteBackground(dataUrl, threshold, softness) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width; canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        const imageData = ctx.getImageData(0, 0, img.width, img.height);
+        const data = imageData.data;
+        const W = img.width, H = img.height;
+        const visited = new Uint8Array(W * H);
+        const stack = [];
+        for (let x = 0; x < W; x++) { stack.push(x, 0); stack.push(x, H - 1); }
+        for (let y = 0; y < H; y++) { stack.push(0, y); stack.push(W - 1, y); }
+        const lowBound = threshold - softness;
+        while (stack.length) {
+          const y = stack.pop(), x = stack.pop();
+          if (x < 0 || x >= W || y < 0 || y >= H) continue;
+          const idx = y * W + x;
+          if (visited[idx]) continue;
+          const p = idx * 4;
+          const minC = Math.min(data[p], data[p+1], data[p+2]);
+          if (minC < lowBound) continue;
+          visited[idx] = 1;
+          if (minC >= threshold) {
+            data[p+3] = 0;
+          } else {
+            const t = softness > 0 ? (minC - lowBound) / softness : 1;
+            data[p+3] = Math.round(255 * (1 - t));
+          }
+          stack.push(x+1, y); stack.push(x-1, y); stack.push(x, y+1); stack.push(x, y-1);
+        }
+        ctx.putImageData(imageData, 0, 0);
+        resolve(canvas.toDataURL('image/png'));
+      } catch (e) { reject(e); }
+    };
+    img.onerror = reject;
+    img.src = dataUrl;
+  });
+}
+
+async function reprocess() {
+  if (!state.rawImage || state.busy) return;
+  state.busy = true;
+  $('procSpin').classList.remove('hidden');
+  try {
+    const t = await removeWhiteBackground(state.rawImage, state.threshold, state.softness);
+    state.transparentImage = t;
+    $('transparentImg').src = t;
+    $('transparentImg').classList.remove('hidden');
+    $('transparentPlaceholder').classList.add('hidden');
+  } catch (e) { showError('배경 처리 실패'); }
+  finally { state.busy = false; $('procSpin').classList.add('hidden'); }
+}
+
+function download() {
+  if (!state.transparentImage) return;
+  const a = document.createElement('a');
+  a.href = state.transparentImage;
+  const date = new Date().toISOString().slice(0,10).replace(/-/g,'');
+  const base = (state.image?.name || 'product').replace(/\.[^.]+$/, '').replace(/[^\w가-힣]+/g, '-').slice(0,30);
+  a.download = 'mannequin_' + base + '_' + date + '.png';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+// ───── Wire up ─────
+function init() {
+  loadApiKey();
+  renderKeyState();
+  renderCards();
+
+  // API key UI
+  $('saveKeyBtn').onclick = () => saveApiKey($('keyInput').value);
+  $('keyInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') saveApiKey($('keyInput').value); });
+  $('eyeBtn').onclick = () => {
+    const inp = $('keyInput');
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+  };
+  $('changeKeyBtn').onclick = () => { if (confirm('API 키를 삭제할까요?')) clearApiKey(); };
+
+  // Upload
+  const dz = $('dropzone');
+  dz.onclick = () => $('fileInput').click();
+  dz.ondragover = (e) => { e.preventDefault(); dz.classList.add('drag'); };
+  dz.ondragleave = () => dz.classList.remove('drag');
+  dz.ondrop = (e) => { e.preventDefault(); dz.classList.remove('drag'); handleFile(e.dataTransfer.files[0]); };
+  $('fileInput').onchange = (e) => handleFile(e.target.files[0]);
+  $('clearImgBtn').onclick = clearImage;
+
+  // Generate / result
+  $('generateBtn').onclick = generate;
+  $('regenBtn').onclick = generate;
+  $('resetBtn').onclick = clearImage;
+  $('downloadBtn').onclick = download;
+  $('reprocessBtn').onclick = reprocess;
+
+  // Sliders
+  $('thrSlider').oninput = (e) => { state.threshold = +e.target.value; $('thrVal').textContent = e.target.value; };
+  $('softSlider').oninput = (e) => { state.softness = +e.target.value; $('softVal').textContent = e.target.value; };
+}
+
+init();
+</script>
+</body>
+</html>
