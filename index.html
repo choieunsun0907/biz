@@ -449,9 +449,10 @@ Show the garment in a STRAIGHT, regular straight fit on BOTH front and back view
 ${viewBlock}
 
 CRITICAL — preserve the original product 100%:
-- Keep ALL original colors, logos, brand marks, prints, text, patterns, embroidery, trims, stitching EXACTLY as in the input
+- Keep ALL original colors, logos, brand marks, prints, text, patterns, embroidery, trims, stitching EXACTLY as in the input, with full fine detail
 - Do NOT add any new text, logos, labels, watermarks, or graphics
 - Do NOT change the design, cut, or proportions
+- PRESERVE every WHITE and light-colored part of the product (white collars, white trims, white stripes, white panels, white logos) with full crisp detail and a clearly defined edge. These white product parts must stay clearly DISTINCT from the white background and must NEVER blend into, merge with, or get lost against the background.
 
 SHOT COMPOSITION:
 - ${lt.desc}
@@ -515,25 +516,43 @@ function removeBackground(dataUrl){
         const imageData = ctx.getImageData(0, 0, W, H);
         const data = imageData.data;
 
-        // Flood-fill from the border, removing LIGHT pixels (white ~ light gray).
-        // Robust: does not depend on sampling any single corner.
+        // Edge-aware flood-fill from the border. Removes the flat LIGHT background
+        // but STOPS at any color edge, so white/light PRODUCT parts (collars, trims,
+        // stripes, logos) bordered or shaded even slightly are never eaten.
+        const span = BG_WHITE_FULL - BG_WHITE_SOFT;
+        const EDGE_STEP = 20;   // color step (sum |dR|+|dG|+|dB|) that counts as an edge → stop
         const visited = new Uint8Array(W*H);
         const stack = [];
-        for (let x=0;x<W;x++){ stack.push(x,0); stack.push(x,H-1); }
-        for (let y=0;y<H;y++){ stack.push(0,y); stack.push(W-1,y); }
+        const lum = (p) => Math.min(data[p], data[p+1], data[p+2]);
+        const step = (p, q) => Math.abs(data[p]-data[q]) + Math.abs(data[p+1]-data[q+1]) + Math.abs(data[p+2]-data[q+2]);
+        const seed = (x, y) => {
+          if (x<0||x>=W||y<0||y>=H) return;
+          const idx = y*W+x; if (visited[idx]) return;
+          if (lum(idx*4) < BG_WHITE_SOFT) return;   // border pixel is product-dark → don't seed
+          stack.push(idx);
+        };
+        for (let x=0;x<W;x++){ seed(x,0); seed(x,H-1); }
+        for (let y=0;y<H;y++){ seed(0,y); seed(W-1,y); }
 
-        const span = BG_WHITE_FULL - BG_WHITE_SOFT;
         while (stack.length){
-          const y = stack.pop(), x = stack.pop();
-          if (x<0||x>=W||y<0||y>=H) continue;
-          const idx = y*W+x; if (visited[idx]) continue;
-          const p = idx*4;
-          const minC = Math.min(data[p], data[p+1], data[p+2]);
-          if (minC < BG_WHITE_SOFT) continue;      // dark enough → product, stop
+          const idx = stack.pop();
+          if (visited[idx]) continue;
           visited[idx] = 1;
-          if (minC >= BG_WHITE_FULL){ data[p+3] = 0; }              // light → transparent
-          else { const t = (minC - BG_WHITE_SOFT) / span; data[p+3] = Math.round(255 * (1 - t)); } // soft edge
-          stack.push(x+1,y); stack.push(x-1,y); stack.push(x,y+1); stack.push(x,y-1);
+          const p = idx*4;
+          const minC = lum(p);
+          if (minC >= BG_WHITE_FULL){ data[p+3] = 0; }                         // flat light bg → transparent
+          else { const t = (minC - BG_WHITE_SOFT) / span; data[p+3] = Math.round(255 * (1 - t)); } // soft fade
+          const x = idx % W, y = (idx - x) / W;
+          const nb = [[x+1,y],[x-1,y],[x,y+1],[x,y-1]];
+          for (let j=0;j<4;j++){
+            const nx = nb[j][0], ny = nb[j][1];
+            if (nx<0||nx>=W||ny<0||ny>=H) continue;
+            const nidx = ny*W+nx; if (visited[nidx]) continue;
+            const np = nidx*4;
+            if (lum(np) < BG_WHITE_SOFT) continue;   // neighbor is product → stop
+            if (step(p, np) > EDGE_STEP) continue;   // an edge sits between → product boundary, stop
+            stack.push(nidx);
+          }
         }
         ctx.putImageData(imageData, 0, 0);
 
