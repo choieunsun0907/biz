@@ -414,8 +414,17 @@ The garment MUST be shown FULLY CLOSED and completely zipped up: the front zippe
   const ghostBlock = isGhost
     ? `
 
-=== GHOST MANNEQUIN 3D (가장 중요) ===
-True ghost / invisible-mannequin effect with STRONG realistic three-dimensional body volume: natural shoulder slope, rounded chest and torso, dimensional sleeve fullness. ABSOLUTELY NO mannequin, body, skin, head, neck, hands or stand visible. ` + (view === 'front' ? `The collar opening reveals the INNER BACK of the neckline (classic ghost-mannequin neck-join).` : `Show the back as a clean dimensional worn form.`) + ` Crisp clean edges, believable hollow interior depth, soft contact shadow beneath.`
+=== GHOST MANNEQUIN — TARGET LOOK (가장 중요) ===
+Reproduce premium sportswear e-commerce ghost-mannequin (hollow-man / invisible-mannequin) photography. The garment must look as if worn by an invisible person standing upright, facing the camera:
+- Structured STANDING COLLAR that holds its shape and stands up around an invisible neck.
+- Broad, filled SHOULDERS with a natural slope; rounded CHEST and TORSO volume; the body fully filled out — never collapsed, creased flat, or pasted-looking.
+- BOTH SLEEVES hang down naturally and symmetrically with realistic tubular arm volume, angled slightly outward away from the body, with the ribbed/elastic cuffs visible at the ends.
+- The whole piece reads as one complete, rounded 3D worn form floating in space with a clear sense of depth.
+- ABSOLUTELY NO mannequin, person, body, skin, head, neck, hands, hanger or stand visible anywhere.
+` + (view === 'front'
+      ? `- The collar opening reveals the INNER BACK of the neckline (classic ghost-mannequin neck-join) so it looks genuinely hollow and worn.`
+      : `- Show a clean dimensional outer back with the same filled, rounded volume.`) + `
+- Realistic soft studio shadows and gentle fabric sheen that convey real depth and the smooth track-jacket material. Crisp clean edges, sharp focus, high resolution. Match the dimensional quality of a professional sportswear catalog ghost-mannequin shot.`
     : '';
 
   return `Transform the attached flat-lay product photograph(s) into a professional e-commerce product shot displayed on ${mt.desc}.
