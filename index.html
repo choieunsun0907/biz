@@ -159,7 +159,7 @@
   <!-- ===== APP ===== -->
   <section id="app" class="hidden">
     <p class="lead">평컷을 올리면, 마네킹 입체 컷의 투명 PNG로 변환합니다.</p>
-    <p class="sub">앞·뒤를 함께 올리면 앞면·뒷면 결과를 각각 생성합니다. 배경은 자동으로 투명 처리되고, 출력은 원본 비율·크기를 유지해요.</p>
+    <p class="sub">앞·뒤를 함께 올리면 앞면·뒷면 결과를 각각 생성합니다. 배경은 자동으로 깨끗이 투명 처리되고, 출력은 1K(1024px) 투명 PNG입니다.</p>
 
     <div id="errBox" class="err hidden">
       <span>⚠️</span>
@@ -241,7 +241,7 @@
         <ul>
           <li>· Gemini 출력에는 보이지 않는 <b>SynthID 워터마크</b>가 포함됩니다 (Google 정책)</li>
           <li>· 배경은 <b>자동으로 투명 처리</b>됩니다 (별도 조절 불필요)</li>
-          <li>· 출력은 업로드한 <b>원본 비율·크기</b>를 따라갑니다</li>
+          <li>· 출력은 <b>1K(1024px) 투명 PNG</b>입니다</li>
           <li>· 세부 조정은 <b>추가 프롬프트</b>에 적고 재생성하세요 (AI 출력은 매번 조금씩 달라요)</li>
         </ul>
       </div>
@@ -258,8 +258,8 @@ const GEMINI_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models
 // Fixed, auto-applied background removal — samples the actual corner background
 // color so pure white, off-white, light-gray and slight gradients are all
 // removed cleanly and consistently (no user adjustment needed).
-const BG_TOL = 46;    // distance from sampled bg color → fully transparent
-const BG_SOFT = 30;   // soft transition band beyond TOL (anti-aliased edge)
+const BG_TOL = 62;    // distance from sampled bg color → fully transparent (catches light shadows)
+const BG_SOFT = 10;   // tight anti-aliased edge band beyond TOL
 
 // Gemini-supported aspect ratios → keep output close to the original
 const SUPPORTED_RATIOS = [
@@ -426,7 +426,7 @@ Reproduce premium sportswear e-commerce ghost-mannequin (hollow-man / invisible-
 ` + (view === 'front'
       ? `- The collar opening reveals the INNER BACK of the neckline (classic ghost-mannequin neck-join) so it looks genuinely hollow and worn.`
       : `- Show a clean dimensional outer back with the same filled, rounded volume.`) + `
-- Realistic soft studio shadows and gentle fabric sheen that convey real depth and the material. Crisp clean edges, sharp focus, high resolution. Match the dimensional quality of a professional sportswear catalog ghost-mannequin shot.`
+- Convey depth ONLY through the garment's own rounded volume, self-shadowing inside folds, and gentle fabric sheen — NOT through any shadow cast onto the background. Crisp clean edges, sharp focus, high resolution. Match the deep, fully-worn 3D dimensional quality of a professional sportswear catalog ghost-mannequin shot.`
     : '';
 
   const extraBlock = extra
@@ -447,7 +447,7 @@ CRITICAL — preserve the original product 100%:
 
 SHOT COMPOSITION:
 - ${lt.desc}
-- Pure white seamless cyclorama background (#FFFFFF), completely clean
+- Pure flat solid WHITE (#FFFFFF) background, completely uniform. ABSOLUTELY NO drop shadow, NO contact/floor shadow, NO reflection, NO gradient, NO surface — the garment must sit on clean flat white so it can be cut out perfectly (the 3D depth comes from the garment's OWN form, not from any cast shadow).
 - Subject fully visible, centered, with comfortable margin on all edges
 - Keep the same overall proportions and framing as the input image (do NOT crop into a square if the input is portrait or landscape)
 
@@ -495,7 +495,7 @@ async function callGemini(view){
 }
 
 // ───── Background removal (corner-sampled color distance) + resize ─────
-function removeBackground(dataUrl, targetW, targetH){
+function removeBackground(dataUrl){
   return new Promise((resolve, reject) => {
     const img = new Image(); img.crossOrigin = 'anonymous';
     img.onload = () => {
@@ -541,14 +541,17 @@ function removeBackground(dataUrl, targetW, targetH){
         }
         ctx.putImageData(imageData, 0, 0);
 
-        // Resize back to original dimensions if provided
+        // Normalize output to 1K (longest side = 1024px), preserving aspect ratio
+        const LONG = 1024;
+        const m = Math.max(W, H);
         let out = canvas;
-        if (targetW && targetH && (targetW !== W || targetH !== H)){
+        if (m !== LONG){
+          const s = LONG / m;
           const oc = document.createElement('canvas');
-          oc.width = targetW; oc.height = targetH;
+          oc.width = Math.round(W * s); oc.height = Math.round(H * s);
           const octx = oc.getContext('2d');
           octx.imageSmoothingQuality = 'high';
-          octx.drawImage(canvas, 0, 0, targetW, targetH);
+          octx.drawImage(canvas, 0, 0, oc.width, oc.height);
           out = oc;
         }
         resolve(out.toDataURL('image/png'));
@@ -570,7 +573,7 @@ async function generate(){
     // FRONT
     setGenerating(true, state.back ? '앞면 생성 중... (1/2)' : '앞면 생성 중...');
     const frontRaw = await callGemini('front');
-    const frontTr = await removeBackground(frontRaw, state.front.w, state.front.h);
+    const frontTr = await removeBackground(frontRaw);
     state.results.push({ view:'front', raw:frontRaw, transparent:frontTr });
     renderResults();
 
@@ -578,7 +581,7 @@ async function generate(){
     if (state.back){
       setGenerating(true, '뒷면 생성 중... (2/2)');
       const backRaw = await callGemini('back');
-      const backTr = await removeBackground(backRaw, state.back.w, state.back.h);
+      const backTr = await removeBackground(backRaw);
       state.results.push({ view:'back', raw:backRaw, transparent:backTr });
       renderResults();
     }
@@ -608,7 +611,7 @@ function renderResults(){
     block.innerHTML =
       '<div class="result-block-title">' + label + '</div>' +
       '<div class="result-single">' +
-        '<div class="res-label">TRANSPARENT · 투명 PNG · 원본 크기</div>' +
+        '<div class="res-label">TRANSPARENT · 투명 PNG · 1K</div>' +
         '<img class="res-img checker" src="' + r.transparent + '" alt="transparent">' +
         '<div><button class="btn btn-dark btn-sm dl-btn" data-i="' + i + '" style="margin-top:12px;">⬇ ' + dlLabel + ' PNG 저장</button></div>' +
       '</div>';
