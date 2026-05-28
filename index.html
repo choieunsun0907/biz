@@ -8,37 +8,18 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap" />
 <style>
   :root {
-    --bg: #FAFAF7;
-    --ink: #1C1917;
-    --muted: #78716C;
-    --faint: #A8A29E;
-    --line: #E7E5E4;
-    --line2: #D6D3D1;
-    --white: #FFFFFF;
-    --red: #B91C1C;
-    --red-dk: #991B1B;
-    --amber-bg: #FEF3C7;
-    --amber-line: #B45309;
-    --amber-ink: #92400E;
+    --bg: #FAFAF7; --ink: #1C1917; --muted: #78716C; --faint: #A8A29E;
+    --line: #E7E5E4; --line2: #D6D3D1; --white: #FFFFFF;
+    --red: #B91C1C; --red-dk: #991B1B;
+    --amber-bg: #FEF3C7; --amber-line: #B45309; --amber-ink: #92400E;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
-    background: var(--bg);
-    color: var(--ink);
-    line-height: 1.5;
-    -webkit-font-smoothing: antialiased;
-  }
+  body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); color: var(--ink); line-height: 1.5; -webkit-font-smoothing: antialiased; }
   .serif { font-family: 'Instrument Serif', serif; }
   .num { font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
   a { color: inherit; }
 
-  header {
-    border-bottom: 1px solid var(--line);
-    background: rgba(250,250,247,0.85);
-    backdrop-filter: blur(8px);
-    position: sticky; top: 0; z-index: 10;
-  }
+  header { border-bottom: 1px solid var(--line); background: rgba(250,250,247,0.85); backdrop-filter: blur(8px); position: sticky; top: 0; z-index: 10; }
   .wrap { max-width: 1000px; margin: 0 auto; padding: 0 24px; }
   .head-row { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 20px 0; }
   .kicker { font-size: 12px; letter-spacing: 0.2em; color: var(--muted); }
@@ -47,50 +28,42 @@
   h1.title em { font-style: italic; }
 
   main { max-width: 1000px; margin: 0 auto; padding: 40px 24px; }
-
   .lead { font-family: 'Instrument Serif', serif; font-style: italic; font-size: 20px; color: var(--muted); line-height: 1.3; max-width: 620px; }
   .sub { font-size: 14px; color: var(--muted); margin-top: 12px; line-height: 1.6; max-width: 620px; }
 
   .step-head { display: flex; align-items: baseline; gap: 16px; border-bottom: 1px solid var(--line2); padding-bottom: 12px; margin-top: 40px; }
   .step-num { font-family: 'Instrument Serif', serif; font-size: 30px; color: var(--faint); }
   .step-label { font-size: 14px; font-weight: 500; letter-spacing: 0.02em; }
+  .step-note { font-size: 12px; color: var(--muted); margin-top: 10px; line-height: 1.6; }
 
   .card-box { border: 1px solid var(--line2); background: var(--white); padding: 32px; border-radius: 3px; }
 
-  /* Upload */
-  .dropzone {
-    margin-top: 16px; border: 2px dashed var(--line2); border-radius: 3px;
-    padding: 48px 24px; text-align: center; cursor: pointer; transition: all .15s; background: var(--white);
-  }
+  /* Dual upload */
+  .dual-upload { margin-top: 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 640px){ .dual-upload { grid-template-columns: 1fr; } }
+  .col-label { font-size: 11px; font-weight: 600; color: var(--ink); margin-bottom: 8px; }
+  .col-label .opt { color: var(--faint); font-weight: 400; }
+  .dropzone { border: 2px dashed var(--line2); border-radius: 3px; padding: 32px 16px; text-align: center; cursor: pointer; transition: all .15s; background: var(--white); }
   .dropzone:hover { border-color: var(--muted); }
   .dropzone.drag { border-color: var(--red); background: #FEF2F2; }
-  .dz-title { color: #44403C; font-weight: 500; margin-top: 12px; }
-  .dz-sub { font-size: 12px; color: var(--muted); margin-top: 8px; }
-
-  .upload-grid { margin-top: 16px; display: grid; grid-template-columns: 240px 1fr; gap: 24px; align-items: start; }
-  @media (max-width: 640px){ .upload-grid { grid-template-columns: 1fr; } }
-  .thumb-wrap { position: relative; }
+  .dz-title { color: #44403C; font-weight: 500; margin-top: 8px; font-size: 13px; }
+  .dz-sub { font-size: 11px; color: var(--muted); margin-top: 6px; }
+  .col-preview .thumb-wrap { position: relative; }
   .thumb { width: 100%; aspect-ratio: 1; object-fit: cover; border: 1px solid var(--line); border-radius: 3px; background: #fff; }
-  .x-btn { position: absolute; top: 8px; right: 8px; width: 32px; height: 32px; border-radius: 50%; background: rgba(28,25,23,.8); color:#fff; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .x-btn { position: absolute; top: 8px; right: 8px; width: 30px; height: 30px; border-radius: 50%; background: rgba(28,25,23,.8); color:#fff; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; }
   .x-btn:hover { background: var(--ink); }
-  .file-label { font-size: 10px; color: var(--faint); letter-spacing: .12em; text-transform: uppercase; margin-bottom: 4px; }
-  .file-name { font-size: 14px; font-weight: 500; }
-  .file-size { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .col-file { font-size: 11px; color: var(--muted); margin-top: 6px; word-break: break-all; }
 
   /* Config */
   .cfg-group { margin-top: 24px; }
   .cfg-label { font-size: 10px; text-transform: uppercase; letter-spacing: .15em; font-weight: 600; color: var(--muted); margin-bottom: 10px; }
   .cfg-cards { display: flex; flex-wrap: wrap; gap: 8px; }
-  .cfg-card {
-    padding: 10px 16px; font-size: 14px; border: 1px solid var(--line2); background: #fff; color: #44403C;
-    border-radius: 3px; cursor: pointer; text-align: left; transition: all .12s; font-family: inherit;
-  }
+  .cfg-card { padding: 10px 16px; font-size: 14px; border: 1px solid var(--line2); background: #fff; color: #44403C; border-radius: 3px; cursor: pointer; text-align: left; transition: all .12s; font-family: inherit; }
   .cfg-card:hover { border-color: var(--muted); }
   .cfg-card.sel { border-color: var(--ink); background: var(--ink); color: var(--bg); }
   .cfg-card .lab { font-weight: 500; }
   .cfg-card .sub { font-size: 10px; margin-top: 2px; color: var(--faint); letter-spacing: .03em; }
 
-  /* Buttons */
   .btn { display: inline-flex; align-items: center; gap: 8px; border-radius: 3px; cursor: pointer; font-family: inherit; font-weight: 500; border: none; transition: all .12s; }
   .btn-primary { background: var(--red); color: #fff; padding: 14px 24px; font-size: 14px; }
   .btn-primary:hover { background: var(--red-dk); }
@@ -100,32 +73,19 @@
   .btn-ghost:hover { background: #F5F5F4; }
   .btn-sm { padding: 6px 12px; font-size: 12px; }
   .btn:disabled { opacity: .5; cursor: not-allowed; }
-
   .hint { font-size: 11px; color: var(--muted); margin-top: 12px; }
 
-  /* Error */
   .err { margin-top: 24px; display: flex; gap: 12px; padding: 16px; border: 1px solid #FECACA; background: #FEF2F2; color: #991B1B; font-size: 14px; border-radius: 3px; }
   .err b { display:block; margin-bottom: 2px; }
 
-  /* Result */
   .result-grid { margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
   @media (max-width: 640px){ .result-grid { grid-template-columns: 1fr; } }
   .res-label { font-size: 10px; text-transform: uppercase; letter-spacing: .15em; color: var(--muted); margin-bottom: 8px; display:flex; align-items:center; gap: 8px; }
   .res-img { width: 100%; aspect-ratio: 1; object-fit: contain; border: 1px solid var(--line); border-radius: 3px; }
   .res-img.white-bg { background: #fff; }
-  .checker {
-    background-image:
-      linear-gradient(45deg, #E7E5E4 25%, transparent 25%),
-      linear-gradient(-45deg, #E7E5E4 25%, transparent 25%),
-      linear-gradient(45deg, transparent 75%, #E7E5E4 75%),
-      linear-gradient(-45deg, transparent 75%, #E7E5E4 75%);
-    background-size: 20px 20px;
-    background-position: 0 0, 0 10px, 10px -10px, -10px 0;
-    background-color: var(--bg);
-  }
+  .checker { background-image: linear-gradient(45deg, #E7E5E4 25%, transparent 25%), linear-gradient(-45deg, #E7E5E4 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #E7E5E4 75%), linear-gradient(-45deg, transparent 75%, #E7E5E4 75%); background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0; background-color: var(--bg); }
   .placeholder { width:100%; aspect-ratio:1; border:1px solid var(--line); border-radius:3px; display:flex; align-items:center; justify-content:center; }
 
-  /* Sliders */
   .tune { margin-top: 24px; padding: 20px; background: #fff; border: 1px solid var(--line2); border-radius: 3px; }
   .tune-title { font-size: 10px; text-transform: uppercase; letter-spacing: .15em; color: var(--muted); margin-bottom: 16px; display:flex; align-items:center; gap:8px; }
   .tune-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
@@ -137,14 +97,12 @@
   .slider-hint { font-size: 10px; color: var(--muted); margin-top: 6px; }
 
   .actions { margin-top: 24px; display: flex; flex-wrap: wrap; gap: 12px; }
-
   .info-box { margin-top: 20px; padding: 16px; background: var(--amber-bg); border-left: 2px solid var(--amber-line); border-radius: 3px; }
   .info-title { font-size: 10px; text-transform: uppercase; letter-spacing: .15em; font-weight: 700; color: var(--amber-ink); margin-bottom: 8px; display:flex; align-items:center; gap:6px; }
   .info-box ul { list-style: none; font-size: 12px; color: #44403C; line-height: 1.7; }
 
   footer { border-top: 1px solid var(--line); padding-top: 24px; margin-top: 64px; font-size: 12px; color: var(--faint); letter-spacing: .02em; }
 
-  /* API key setup */
   .key-input-row { display: flex; gap: 8px; margin-top: 4px; }
   .key-input-wrap { flex: 1; position: relative; }
   .key-input { width: 100%; border: 1px solid var(--line2); border-radius: 3px; padding: 11px 40px 11px 12px; font-size: 14px; font-family: ui-monospace, monospace; }
@@ -156,8 +114,6 @@
 
   .spin { animation: spin 1s linear infinite; display:inline-block; }
   @keyframes spin { to { transform: rotate(360deg); } }
-  .icon { width: 16px; height: 16px; flex-shrink: 0; }
-  .icon-sm { width: 13px; height: 13px; }
   .hidden { display: none !important; }
   .change-key { font-size: 10px; color: var(--faint); background:none; border:none; cursor:pointer; display:flex; align-items:center; gap:4px; }
   .change-key:hover { color: var(--red); }
@@ -203,35 +159,53 @@
 
   <!-- ===== APP ===== -->
   <section id="app" class="hidden">
-    <p class="lead">평컷 한 장을 올리면, 마네킹 입체 컷의 투명 PNG로 변환합니다.</p>
-    <p class="sub">Gemini Nano Banana로 마네킹 입체화 → 흰 배경 자동 투명화. 제품 원본 디자인은 100% 그대로 유지됩니다.</p>
+    <p class="lead">평컷을 올리면, 마네킹 입체 컷의 투명 PNG로 변환합니다.</p>
+    <p class="sub">앞·뒤 컷을 함께 올리면 투명 마네킹의 입체감과 안쪽 넥라인이 더 정확해집니다. 제품 원본 디자인은 100% 그대로 유지돼요.</p>
 
     <div id="errBox" class="err hidden">
       <span>⚠️</span>
       <div><b>문제가 생겼어요</b><span id="errMsg"></span></div>
     </div>
 
-    <!-- STEP 1 -->
-    <div class="step-head"><span class="step-num num">01</span><span class="step-label">평컷 업로드</span></div>
-    <div id="dropzone" class="dropzone">
-      <div style="font-size:24px;">⬆</div>
-      <div class="dz-title">이미지를 드래그하거나 클릭해서 업로드</div>
-      <div class="dz-sub">JPG, PNG, WEBP · 7MB 이하 · 깨끗한 평컷 권장</div>
-      <input id="fileInput" type="file" accept="image/*" class="hidden" />
-    </div>
-    <div id="uploadPreview" class="upload-grid hidden">
-      <div class="thumb-wrap">
-        <img id="previewImg" class="thumb" alt="uploaded" />
-        <button id="clearImgBtn" class="x-btn">✕</button>
+    <!-- STEP 1: FRONT + BACK UPLOAD -->
+    <div class="step-head"><span class="step-num num">01</span><span class="step-label">평컷 업로드 (앞 / 뒤)</span></div>
+    <div class="step-note">🧥 <b>앞 컷은 필수</b>, 뒤 컷은 선택이에요. 뒤 컷을 함께 올리면 투명 마네킹의 <b>안쪽 넥라인·뒷면 디테일</b>이 훨씬 정확해집니다.</div>
+    <div class="dual-upload">
+      <div class="upload-col">
+        <div class="col-label">앞 컷 <span class="opt">· 필수</span></div>
+        <div id="frontDropzone" class="dropzone">
+          <div style="font-size:20px;">⬆</div>
+          <div class="dz-title">앞 컷 업로드</div>
+          <div class="dz-sub">JPG · PNG · WEBP · 7MB 이하</div>
+          <input id="frontFileInput" type="file" accept="image/*" class="hidden" />
+        </div>
+        <div id="frontPreview" class="col-preview hidden">
+          <div class="thumb-wrap">
+            <img id="frontPreviewImg" class="thumb" alt="front" />
+            <button id="frontClearBtn" class="x-btn">✕</button>
+          </div>
+          <div id="frontFileName" class="col-file num"></div>
+        </div>
       </div>
-      <div style="padding-top:4px;">
-        <div class="file-label num">파일</div>
-        <div id="fileName" class="file-name"></div>
-        <div id="fileSize" class="file-size num"></div>
+      <div class="upload-col">
+        <div class="col-label">뒤 컷 <span class="opt">· 선택 (권장)</span></div>
+        <div id="backDropzone" class="dropzone">
+          <div style="font-size:20px;">⬆</div>
+          <div class="dz-title">뒤 컷 업로드</div>
+          <div class="dz-sub">안쪽 넥라인·뒷면 정확도 ↑</div>
+          <input id="backFileInput" type="file" accept="image/*" class="hidden" />
+        </div>
+        <div id="backPreview" class="col-preview hidden">
+          <div class="thumb-wrap">
+            <img id="backPreviewImg" class="thumb" alt="back" />
+            <button id="backClearBtn" class="x-btn">✕</button>
+          </div>
+          <div id="backFileName" class="col-file num"></div>
+        </div>
       </div>
     </div>
 
-    <!-- STEP 2 -->
+    <!-- STEP 2: CONFIG -->
     <div id="configSection" class="hidden">
       <div class="step-head"><span class="step-num num">02</span><span class="step-label">연출 설정</span></div>
       <div class="cfg-group">
@@ -252,7 +226,7 @@
       </div>
     </div>
 
-    <!-- STEP 3 -->
+    <!-- STEP 3: RESULT -->
     <div id="resultSection" class="hidden">
       <div class="step-head"><span class="step-num num">03</span><span class="step-label">결과</span></div>
       <div class="result-grid">
@@ -294,8 +268,9 @@
         <div class="info-title">ⓘ 알아두기</div>
         <ul>
           <li>· Gemini 출력에는 보이지 않는 <b>SynthID 워터마크</b>가 포함됩니다 (Google 정책)</li>
-          <li>· 결과가 아쉬우면 <b>같은 설정으로 재생성</b> — AI 출력은 매번 조금씩 달라요</li>
+          <li>· 투명 마네킹 입체감이 약하면 <b>뒤 컷도 함께 업로드</b>하고 재생성해보세요</li>
           <li>· 제품에 흰색이 많으면 <b>흰색 감지 강도를 248~252로</b> 올려보세요</li>
+          <li>· 결과는 매번 조금씩 달라요 — <b>재생성</b>으로 베스트 컷을 고르세요</li>
         </ul>
       </div>
     </div>
@@ -310,7 +285,8 @@ const GEMINI_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models
 
 const state = {
   apiKey: '',
-  image: null,        // { preview, base64, mediaType, name, sizeMB }
+  front: null,   // required
+  back: null,    // optional
   rawImage: null,
   transparentImage: null,
   threshold: 238,
@@ -321,10 +297,10 @@ const state = {
 
 const OPTIONS = {
   mannequin: [
-    { id: 'invisible', label: '투명 마네킹', sub: 'Ghost', desc: 'invisible mannequin (hollow garment with 3D body shape, no mannequin or body visible)' },
-    { id: 'fullbody', label: '전신 마네킹', sub: 'Full', desc: 'minimalist matte white full-body mannequin without facial features' },
-    { id: 'torso', label: '토르소', sub: 'Bust', desc: 'minimalist matte white torso/bust mannequin form' },
-    { id: 'hanger', label: '행거', sub: 'Hanger', desc: 'simple thin wire hanger, garment naturally draped' },
+    { id: 'invisible', label: '투명 마네킹', sub: 'Ghost', desc: 'a professional GHOST MANNEQUIN (invisible mannequin) effect' },
+    { id: 'fullbody', label: '전신 마네킹', sub: 'Full', desc: 'a minimalist matte white full-body mannequin without facial features' },
+    { id: 'torso', label: '토르소', sub: 'Bust', desc: 'a minimalist matte white torso/bust mannequin form' },
+    { id: 'hanger', label: '행거', sub: 'Hanger', desc: 'a simple thin wire hanger with the garment naturally draped' },
   ],
   angle: [
     { id: 'front', label: '정면', desc: 'straight-on front view, perfectly centered, garment fully visible' },
@@ -333,171 +309,167 @@ const OPTIONS = {
     { id: 'back', label: '후면', desc: 'back view' },
   ],
   lighting: [
-    { id: 'studio', label: '스튜디오', desc: 'even soft studio lighting from front, very subtle shadows under garment edges' },
+    { id: 'studio', label: '스튜디오', desc: 'even soft studio lighting from front, with very subtle shadows under garment edges' },
     { id: 'highkey', label: '하이키', desc: 'bright high-key lighting, virtually no shadows, clean and crisp' },
-    { id: 'dramatic', label: '드라마틱', desc: 'subtle directional rim light from upper side, gentle dimensional shadows' },
+    { id: 'dramatic', label: '드라마틱', desc: 'subtle directional rim light from the upper side, gentle dimensional shadows' },
   ],
 };
 
 const $ = (id) => document.getElementById(id);
 
 // ───── API key ─────
-function loadApiKey() {
-  try {
-    const v = localStorage.getItem(STORAGE_KEY);
-    if (v) state.apiKey = atob(v);
-  } catch (e) {}
-}
-function saveApiKey(key) {
-  const trimmed = (key || '').trim();
-  if (!trimmed) return;
-  try { localStorage.setItem(STORAGE_KEY, btoa(trimmed)); } catch (e) {}
-  state.apiKey = trimmed;
-  renderKeyState();
-}
-function clearApiKey() {
-  try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
-  state.apiKey = '';
-  renderKeyState();
-}
-function renderKeyState() {
-  if (state.apiKey) {
-    $('keySetup').classList.add('hidden');
-    $('app').classList.remove('hidden');
-    $('changeKeyBtn').classList.remove('hidden');
-  } else {
-    $('keySetup').classList.remove('hidden');
-    $('app').classList.add('hidden');
-    $('changeKeyBtn').classList.add('hidden');
-  }
+function loadApiKey(){ try { const v = localStorage.getItem(STORAGE_KEY); if (v) state.apiKey = atob(v); } catch(e){} }
+function saveApiKey(key){ const t=(key||'').trim(); if(!t)return; try{localStorage.setItem(STORAGE_KEY, btoa(t));}catch(e){} state.apiKey=t; renderKeyState(); }
+function clearApiKey(){ try{localStorage.removeItem(STORAGE_KEY);}catch(e){} state.apiKey=''; renderKeyState(); }
+function renderKeyState(){
+  if (state.apiKey){ $('keySetup').classList.add('hidden'); $('app').classList.remove('hidden'); $('changeKeyBtn').classList.remove('hidden'); }
+  else { $('keySetup').classList.remove('hidden'); $('app').classList.add('hidden'); $('changeKeyBtn').classList.add('hidden'); }
 }
 
 // ───── Error ─────
-function showError(msg) {
-  $('errMsg').textContent = ' ' + msg;
-  $('errBox').classList.remove('hidden');
-}
-function clearError() { $('errBox').classList.add('hidden'); }
+function showError(msg){ $('errMsg').textContent = ' ' + msg; $('errBox').classList.remove('hidden'); }
+function clearError(){ $('errBox').classList.add('hidden'); }
 
 // ───── Config cards ─────
-function renderCards() {
+function renderCards(){
   const groups = [
-    { el: 'mannequinCards', key: 'mannequinType', opts: OPTIONS.mannequin },
-    { el: 'angleCards', key: 'angle', opts: OPTIONS.angle },
-    { el: 'lightingCards', key: 'lighting', opts: OPTIONS.lighting },
+    { el:'mannequinCards', key:'mannequinType', opts:OPTIONS.mannequin },
+    { el:'angleCards', key:'angle', opts:OPTIONS.angle },
+    { el:'lightingCards', key:'lighting', opts:OPTIONS.lighting },
   ];
-  for (const g of groups) {
-    const container = $(g.el);
-    container.innerHTML = '';
-    for (const opt of g.opts) {
+  for (const g of groups){
+    const c = $(g.el); c.innerHTML = '';
+    for (const opt of g.opts){
       const btn = document.createElement('button');
-      btn.className = 'cfg-card' + (state.config[g.key] === opt.id ? ' sel' : '');
-      btn.innerHTML = '<div class="lab">' + opt.label + '</div>' + (opt.sub ? '<div class="sub num">' + opt.sub + '</div>' : '');
+      btn.className = 'cfg-card' + (state.config[g.key]===opt.id ? ' sel' : '');
+      btn.innerHTML = '<div class="lab">'+opt.label+'</div>' + (opt.sub ? '<div class="sub num">'+opt.sub+'</div>' : '');
       btn.onclick = () => { state.config[g.key] = opt.id; renderCards(); };
-      container.appendChild(btn);
+      c.appendChild(btn);
     }
   }
 }
 
-// ───── File handling ─────
-function handleFile(file) {
-  if (!file) return;
-  if (!file.type.startsWith('image/')) { showError('이미지 파일만 업로드 가능합니다'); return; }
-  if (file.size > 7 * 1024 * 1024) { showError('Gemini는 7MB 이하 이미지만 허용해요. 압축해서 올려주세요.'); return; }
-  clearError();
-  state.rawImage = null; state.transparentImage = null;
-  $('resultSection').classList.add('hidden');
-
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    const result = e.target.result;
-    state.image = {
-      preview: result,
-      base64: result.split(',')[1],
-      mediaType: file.type,
-      name: file.name,
-      sizeMB: (file.size / 1024 / 1024).toFixed(2),
+// ───── Generic uploader (front / back) ─────
+function makeUploader(cfg){
+  const dz = $(cfg.dz), fileInput = $(cfg.fileInput);
+  const accept = (file) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')){ showError('이미지 파일만 업로드 가능합니다'); return; }
+    if (file.size > 7*1024*1024){ showError('Gemini는 7MB 이하 이미지만 허용해요. 압축해서 올려주세요.'); return; }
+    clearError();
+    state.rawImage = null; state.transparentImage = null;
+    $('resultSection').classList.add('hidden');
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const result = e.target.result;
+      state[cfg.stateKey] = { preview: result, base64: result.split(',')[1], mediaType: file.type, name: file.name, sizeMB: (file.size/1024/1024).toFixed(2) };
+      $(cfg.previewImg).src = result;
+      $(cfg.fileName).textContent = file.name + ' · ' + state[cfg.stateKey].sizeMB + ' MB';
+      $(cfg.dz).classList.add('hidden');
+      $(cfg.preview).classList.remove('hidden');
+      refreshReady();
     };
-    $('previewImg').src = result;
-    $('fileName').textContent = file.name;
-    $('fileSize').textContent = state.image.sizeMB + ' MB';
-    $('dropzone').classList.add('hidden');
-    $('uploadPreview').classList.remove('hidden');
-    $('configSection').classList.remove('hidden');
+    reader.readAsDataURL(file);
   };
-  reader.readAsDataURL(file);
-}
-function clearImage() {
-  state.image = null; state.rawImage = null; state.transparentImage = null;
-  $('dropzone').classList.remove('hidden');
-  $('uploadPreview').classList.add('hidden');
-  $('configSection').classList.add('hidden');
-  $('resultSection').classList.add('hidden');
-  $('fileInput').value = '';
-  clearError();
+  dz.onclick = () => fileInput.click();
+  dz.ondragover = (e) => { e.preventDefault(); dz.classList.add('drag'); };
+  dz.ondragleave = () => dz.classList.remove('drag');
+  dz.ondrop = (e) => { e.preventDefault(); dz.classList.remove('drag'); accept(e.dataTransfer.files[0]); };
+  fileInput.onchange = (e) => accept(e.target.files[0]);
+  $(cfg.clearBtn).onclick = () => {
+    state[cfg.stateKey] = null;
+    $(cfg.dz).classList.remove('hidden');
+    $(cfg.preview).classList.add('hidden');
+    fileInput.value = '';
+    refreshReady();
+  };
 }
 
-// ───── Prompt ─────
-function buildPrompt() {
+function refreshReady(){
+  if (state.front) $('configSection').classList.remove('hidden');
+  else $('configSection').classList.add('hidden');
+  $('generateBtn').disabled = !state.front || state.busy;
+}
+
+// ───── Prompt (3D-enhanced, front+back aware) ─────
+function buildPrompt(){
   const mt = OPTIONS.mannequin.find(m => m.id === state.config.mannequinType);
   const ang = OPTIONS.angle.find(a => a.id === state.config.angle);
   const lt = OPTIONS.lighting.find(l => l.id === state.config.lighting);
-  return `Transform the attached flat-lay product photograph into a professional e-commerce product shot displayed on a ${mt.desc}.
+  const hasBack = !!state.back;
+  const isGhost = state.config.mannequinType === 'invisible';
 
-CRITICAL REQUIREMENTS — preserve the original product 100%:
-- Keep ALL original colors, logos, brand marks, prints, text, patterns, embroidery, trims, and stitching EXACTLY as in the input image
+  const ghostBlock = isGhost ? `
+
+=== GHOST MANNEQUIN 3D (가장 중요) ===
+Render a true ghost / invisible-mannequin effect with STRONG realistic three-dimensional body volume:
+- The garment is filled out as if worn by an invisible person: natural shoulder slope, rounded chest and torso volume, dimensional sleeve fullness, and gentle waist taper.
+- ABSOLUTELY NO mannequin, body, skin, head, neck, hands, or stand visible.
+- The hollow neckline MUST reveal the INNER BACK of the collar/neckline (the classic ghost-mannequin neck-join), so the piece looks like a complete worn 3D form — never a flat cut-out.
+- Crisp clean garment edges, believable interior hollow depth at the neck and cuffs, soft contact shadow beneath.` : '';
+
+  const backBlock = hasBack ? `
+
+=== TWO REFERENCE IMAGES ===
+The FIRST image is the FRONT cut; the SECOND image is the BACK cut. Use the FRONT as the primary view. Use the BACK image to accurately reconstruct the inner back collar/neckline seen through the neck opening, and to keep all back-side design details (logos, prints, numbering, colors) faithful and consistent.` : '';
+
+  return `Transform the attached flat-lay product photograph(s) into a professional e-commerce product shot displayed on ${mt.desc}.
+
+CRITICAL — preserve the original product 100%:
+- Keep ALL original colors, logos, brand marks, prints, text, patterns, embroidery, trims, and stitching EXACTLY as in the input image(s)
 - Do NOT add any new text, logos, labels, watermarks, or graphics
 - Do NOT change the design, cut, or proportions of the garment
-- Match the exact fabric color and material appearance
 
 SHOT COMPOSITION:
 - ${ang.desc}
 - ${lt.desc}
 - Pure white seamless cyclorama background (#FFFFFF), completely clean
-- Subject fully visible, centered, with comfortable margin around all edges
-- Natural fabric drape, folds, and dimensional volume showing the garment in 3D form
-- Photorealistic product photography quality, sharp focus on fabric texture
-- 1:1 square aspect ratio
+- Subject fully visible, centered, with comfortable margin on all edges
 
-OUTPUT: A single high-quality product image, no text, no captions, no borders.`;
+3D / 입체감 (필수):
+- Render STRONG, realistic three-dimensional volume and depth — the garment must look fully dimensional and worn, NEVER flat or like a pasted cut-out.
+- Natural fabric tension, drape, folds and soft self-shadows that convey a real body form underneath.
+- Believable thickness and roundness at edges, collar, shoulders, cuffs and hem.${ghostBlock}${backBlock}
+
+OUTPUT: A single high-quality photorealistic product image, no text, no captions, no borders.`;
 }
 
 // ───── Generate ─────
-async function generate() {
-  if (!state.apiKey) { showError('Gemini API 키를 먼저 입력해주세요'); return; }
-  if (!state.image || state.busy) return;
-  state.busy = true;
-  clearError();
-  setGenerating(true, 'Gemini Nano Banana에 요청 중...');
+async function generate(){
+  if (!state.apiKey){ showError('Gemini API 키를 먼저 입력해주세요'); return; }
+  if (!state.front || state.busy) return;
+  state.busy = true; clearError(); setGenerating(true, 'Gemini Nano Banana에 요청 중...');
   $('resultSection').classList.add('hidden');
 
   try {
+    const parts = [
+      { text: buildPrompt() },
+      { inline_data: { mime_type: state.front.mediaType, data: state.front.base64 } },
+    ];
+    if (state.back) parts.push({ inline_data: { mime_type: state.back.mediaType, data: state.back.base64 } });
+
     const res = await fetch(GEMINI_ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-goog-api-key': state.apiKey },
       body: JSON.stringify({
-        contents: [{ parts: [
-          { text: buildPrompt() },
-          { inline_data: { mime_type: state.image.mediaType, data: state.image.base64 } },
-        ]}],
+        contents: [{ parts: parts }],
         generationConfig: { responseModalities: ['IMAGE'], imageConfig: { aspectRatio: '1:1' } },
       }),
     });
 
-    if (!res.ok) {
-      const t = await res.text();
-      let p; try { p = JSON.parse(t); } catch {}
-      throw new Error(p?.error?.message || t || ('HTTP ' + res.status));
+    if (!res.ok){
+      const t = await res.text(); let p; try{p=JSON.parse(t);}catch{}
+      throw new Error((p && p.error && p.error.message) || t || ('HTTP ' + res.status));
     }
 
     const data = await res.json();
-    const parts = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) || [];
-    const imgPart = parts.find(p => (p.inlineData && p.inlineData.data) || (p.inline_data && p.inline_data.data));
+    const rparts = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) || [];
+    const imgPart = rparts.find(p => (p.inlineData && p.inlineData.data) || (p.inline_data && p.inline_data.data));
     const b64 = imgPart && (imgPart.inlineData ? imgPart.inlineData.data : imgPart.inline_data.data);
-    const mt = imgPart && (imgPart.inlineData ? imgPart.inlineData.mimeType : imgPart.inline_data.mime_type) || 'image/png';
+    const mt = (imgPart && (imgPart.inlineData ? imgPart.inlineData.mimeType : imgPart.inline_data.mime_type)) || 'image/png';
 
-    if (!b64) {
-      const txt = parts.find(p => p.text);
+    if (!b64){
+      const txt = rparts.find(p => p.text);
       throw new Error(txt ? ('이미지가 반환되지 않았어요. 모델 응답: "' + txt.text.slice(0,120) + '..."') : '이미지가 반환되지 않았어요. 다시 시도해주세요.');
     }
 
@@ -514,140 +486,113 @@ async function generate() {
     $('transparentImg').src = transparent;
     $('transparentImg').classList.remove('hidden');
     $('transparentPlaceholder').classList.add('hidden');
-  } catch (err) {
+  } catch (err){
     console.error(err);
-    let raw = err.message || '생성 실패';
-    let msg = raw;
-    if (raw.includes('Failed to fetch')) {
+    let raw = err.message || '생성 실패'; let msg = raw;
+    if (raw.includes('Failed to fetch')){
       msg = '네트워크 요청이 차단됐어요. 이 파일을 로컬에서 직접 열면(file://) 차단될 수 있습니다. GitHub Pages 등 배포 주소에서 실행해주세요.';
-    } else if (raw.includes('limit: 0') || raw.includes('RESOURCE_EXHAUSTED') || raw.includes('billing') || /quota/i.test(raw)) {
+    } else if (raw.includes('limit: 0') || raw.includes('RESOURCE_EXHAUSTED') || raw.includes('billing') || /quota/i.test(raw)){
       msg = 'Gemini 이미지 생성은 이제 결제(billing) 계정 연결이 필요해요 (Google 2026 정책 변경). 해결: Google AI Studio(aistudio.google.com/apikey)에서 결제를 활성화하세요. 신규 가입 시 $300 무료 크레딧이 제공되고, 이미지당 약 $0.04로 거의 무료입니다. 활성화 후 몇 분 뒤 다시 시도해주세요.';
-    } else if (raw.includes('API key not valid') || raw.includes('API_KEY_INVALID') || raw.includes('401') || raw.includes('403')) {
-      msg = 'API 키가 유효하지 않아요. Google AI Studio에서 키를 다시 확인하고 "키 변경"으로 새로 입력해주세요. (원본: ' + raw.slice(0, 60) + ')';
+    } else if (raw.includes('API key not valid') || raw.includes('API_KEY_INVALID') || raw.includes('401') || raw.includes('403')){
+      msg = 'API 키가 유효하지 않아요. Google AI Studio에서 키를 다시 확인하고 "키 변경"으로 새로 입력해주세요. (원본: ' + raw.slice(0,60) + ')';
     }
     showError(msg);
   } finally {
-    state.busy = false;
-    setGenerating(false);
+    state.busy = false; setGenerating(false); refreshReady();
   }
 }
 
-function setGenerating(on, msg) {
+function setGenerating(on, msg){
   const btn = $('generateBtn');
-  if (on) {
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spin">◌</span> ' + (msg || '처리 중...');
-  } else {
-    btn.disabled = false;
-    btn.innerHTML = '✨ 마네킹 변환 실행 →';
-  }
+  if (on){ btn.disabled = true; btn.innerHTML = '<span class="spin">◌</span> ' + (msg || '처리 중...'); }
+  else { btn.innerHTML = '✨ 마네킹 변환 실행 →'; }
 }
 
 // ───── Background removal (edge flood fill) ─────
-function removeWhiteBackground(dataUrl, threshold, softness) {
+function removeWhiteBackground(dataUrl, threshold, softness){
   return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
+    const img = new Image(); img.crossOrigin = 'anonymous';
     img.onload = () => {
       try {
         const canvas = document.createElement('canvas');
         canvas.width = img.width; canvas.height = img.height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0);
+        const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0);
         const imageData = ctx.getImageData(0, 0, img.width, img.height);
-        const data = imageData.data;
-        const W = img.width, H = img.height;
-        const visited = new Uint8Array(W * H);
-        const stack = [];
-        for (let x = 0; x < W; x++) { stack.push(x, 0); stack.push(x, H - 1); }
-        for (let y = 0; y < H; y++) { stack.push(0, y); stack.push(W - 1, y); }
+        const data = imageData.data; const W = img.width, H = img.height;
+        const visited = new Uint8Array(W*H); const stack = [];
+        for (let x=0;x<W;x++){ stack.push(x,0); stack.push(x,H-1); }
+        for (let y=0;y<H;y++){ stack.push(0,y); stack.push(W-1,y); }
         const lowBound = threshold - softness;
-        while (stack.length) {
+        while (stack.length){
           const y = stack.pop(), x = stack.pop();
-          if (x < 0 || x >= W || y < 0 || y >= H) continue;
-          const idx = y * W + x;
-          if (visited[idx]) continue;
-          const p = idx * 4;
-          const minC = Math.min(data[p], data[p+1], data[p+2]);
+          if (x<0||x>=W||y<0||y>=H) continue;
+          const idx = y*W+x; if (visited[idx]) continue;
+          const p = idx*4; const minC = Math.min(data[p],data[p+1],data[p+2]);
           if (minC < lowBound) continue;
           visited[idx] = 1;
-          if (minC >= threshold) {
-            data[p+3] = 0;
-          } else {
-            const t = softness > 0 ? (minC - lowBound) / softness : 1;
-            data[p+3] = Math.round(255 * (1 - t));
-          }
-          stack.push(x+1, y); stack.push(x-1, y); stack.push(x, y+1); stack.push(x, y-1);
+          if (minC >= threshold){ data[p+3] = 0; }
+          else { const t = softness>0 ? (minC-lowBound)/softness : 1; data[p+3] = Math.round(255*(1-t)); }
+          stack.push(x+1,y); stack.push(x-1,y); stack.push(x,y+1); stack.push(x,y-1);
         }
         ctx.putImageData(imageData, 0, 0);
         resolve(canvas.toDataURL('image/png'));
-      } catch (e) { reject(e); }
+      } catch(e){ reject(e); }
     };
-    img.onerror = reject;
-    img.src = dataUrl;
+    img.onerror = reject; img.src = dataUrl;
   });
 }
 
-async function reprocess() {
+async function reprocess(){
   if (!state.rawImage || state.busy) return;
-  state.busy = true;
-  $('procSpin').classList.remove('hidden');
+  state.busy = true; $('procSpin').classList.remove('hidden');
   try {
     const t = await removeWhiteBackground(state.rawImage, state.threshold, state.softness);
     state.transparentImage = t;
-    $('transparentImg').src = t;
-    $('transparentImg').classList.remove('hidden');
-    $('transparentPlaceholder').classList.add('hidden');
-  } catch (e) { showError('배경 처리 실패'); }
+    $('transparentImg').src = t; $('transparentImg').classList.remove('hidden'); $('transparentPlaceholder').classList.add('hidden');
+  } catch(e){ showError('배경 처리 실패'); }
   finally { state.busy = false; $('procSpin').classList.add('hidden'); }
 }
 
-function download() {
+function download(){
   if (!state.transparentImage) return;
-  const a = document.createElement('a');
-  a.href = state.transparentImage;
+  const a = document.createElement('a'); a.href = state.transparentImage;
   const date = new Date().toISOString().slice(0,10).replace(/-/g,'');
-  const base = (state.image?.name || 'product').replace(/\.[^.]+$/, '').replace(/[^\w가-힣]+/g, '-').slice(0,30);
+  const base = (state.front && state.front.name || 'product').replace(/\.[^.]+$/, '').replace(/[^\w가-힣]+/g,'-').slice(0,30);
   a.download = 'mannequin_' + base + '_' + date + '.png';
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
 }
 
-// ───── Wire up ─────
-function init() {
-  loadApiKey();
-  renderKeyState();
-  renderCards();
+function resetAll(){
+  state.front = null; state.back = null; state.rawImage = null; state.transparentImage = null;
+  $('frontDropzone').classList.remove('hidden'); $('frontPreview').classList.add('hidden'); $('frontFileInput').value = '';
+  $('backDropzone').classList.remove('hidden'); $('backPreview').classList.add('hidden'); $('backFileInput').value = '';
+  $('configSection').classList.add('hidden'); $('resultSection').classList.add('hidden');
+  clearError(); refreshReady();
+}
 
-  // API key UI
+// ───── Init ─────
+function init(){
+  loadApiKey(); renderKeyState(); renderCards();
+
   $('saveKeyBtn').onclick = () => saveApiKey($('keyInput').value);
   $('keyInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') saveApiKey($('keyInput').value); });
-  $('eyeBtn').onclick = () => {
-    const inp = $('keyInput');
-    inp.type = inp.type === 'password' ? 'text' : 'password';
-  };
+  $('eyeBtn').onclick = () => { const i = $('keyInput'); i.type = i.type === 'password' ? 'text' : 'password'; };
   $('changeKeyBtn').onclick = () => { if (confirm('API 키를 삭제할까요?')) clearApiKey(); };
 
-  // Upload
-  const dz = $('dropzone');
-  dz.onclick = () => $('fileInput').click();
-  dz.ondragover = (e) => { e.preventDefault(); dz.classList.add('drag'); };
-  dz.ondragleave = () => dz.classList.remove('drag');
-  dz.ondrop = (e) => { e.preventDefault(); dz.classList.remove('drag'); handleFile(e.dataTransfer.files[0]); };
-  $('fileInput').onchange = (e) => handleFile(e.target.files[0]);
-  $('clearImgBtn').onclick = clearImage;
+  makeUploader({ stateKey:'front', dz:'frontDropzone', fileInput:'frontFileInput', preview:'frontPreview', previewImg:'frontPreviewImg', clearBtn:'frontClearBtn', fileName:'frontFileName' });
+  makeUploader({ stateKey:'back', dz:'backDropzone', fileInput:'backFileInput', preview:'backPreview', previewImg:'backPreviewImg', clearBtn:'backClearBtn', fileName:'backFileName' });
 
-  // Generate / result
   $('generateBtn').onclick = generate;
   $('regenBtn').onclick = generate;
-  $('resetBtn').onclick = clearImage;
+  $('resetBtn').onclick = resetAll;
   $('downloadBtn').onclick = download;
   $('reprocessBtn').onclick = reprocess;
 
-  // Sliders
   $('thrSlider').oninput = (e) => { state.threshold = +e.target.value; $('thrVal').textContent = e.target.value; };
   $('softSlider').oninput = (e) => { state.softness = +e.target.value; $('softVal').textContent = e.target.value; };
-}
 
+  refreshReady();
+}
 init();
 </script>
 </body>
