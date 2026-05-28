@@ -258,7 +258,7 @@ const GEMINI_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models
 // Fixed, auto-applied background removal — samples the actual corner background
 // color so pure white, off-white, light-gray and slight gradients are all
 // removed cleanly and consistently (no user adjustment needed).
-const BG_TOL = 62;    // distance from sampled bg color → fully transparent (catches light shadows)
+const BG_TOL = 72;    // distance from sampled bg color → fully transparent (complete removal)
 const BG_SOFT = 10;   // tight anti-aliased edge band beyond TOL
 
 // Gemini-supported aspect ratios → keep output close to the original
@@ -436,6 +436,11 @@ Reproduce premium sportswear e-commerce ghost-mannequin (hollow-man / invisible-
 ${extra}`
     : '';
 
+  const fitBlock = `
+
+=== FIT — 일자핏 (STRAIGHT REGULAR FIT) ===
+Show the garment in a STRAIGHT, regular straight fit: an even, balanced silhouette that hangs straight down from the shoulders with consistent width through the body. Do NOT taper it into a slim or hourglass shape, do NOT pinch the waist, do NOT flare the hem, and do NOT exaggerate chest or muscle curves. Keep a clean, straight, natural vertical drape while still showing real 3D worn volume.`;
+
   return `Transform the attached flat-lay product photograph(s) into a professional e-commerce product shot displayed on ${mt.desc}.
 
 ${viewBlock}
@@ -453,7 +458,7 @@ SHOT COMPOSITION:
 
 3D / 입체감 (필수):
 - STRONG realistic three-dimensional volume — fully dimensional and worn, NEVER flat or like a pasted cut-out.
-- Natural fabric tension, drape, folds, soft self-shadows; believable thickness at edges, collar, shoulders, cuffs and hem.${zipBlock}${ghostBlock}${extraBlock}
+- Natural fabric tension, drape, folds, soft self-shadows; believable thickness at edges, collar, shoulders, cuffs and hem.${fitBlock}${zipBlock}${ghostBlock}${extraBlock}
 
 OUTPUT: A single high-quality photorealistic product image, no text, no captions, no borders.`;
 }
