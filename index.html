@@ -255,6 +255,13 @@
 const STORAGE_KEY = 'ssaka_gemini_key_v1';
 const GEMINI_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent';
 
+// ⚠️ EMBEDDED API KEY — visible to anyone who can view this file.
+// If hosting on a PUBLIC GitHub Pages repo, you MUST restrict this key at
+// https://console.cloud.google.com/apis/credentials → Application restrictions
+// = Websites = https://<your-id>.github.io/biz/*  +  API restriction = Generative Language API.
+// Otherwise a leak can be used by anyone and rack up billing charges.
+const DEFAULT_API_KEY = 'AIzaSyBQaRjbXNjcV8-RGdsueMHVNpLtMi57G08';
+
 // Fixed, auto-applied background removal — samples the actual corner background
 // color so pure white, off-white, light-gray and slight gradients are all
 // removed cleanly and consistently (no user adjustment needed).
@@ -303,7 +310,10 @@ const OPTIONS = {
 const $ = (id) => document.getElementById(id);
 
 // ───── API key ─────
-function loadApiKey(){ try { const v = localStorage.getItem(STORAGE_KEY); if (v) state.apiKey = atob(v); } catch(e){} }
+function loadApiKey(){
+  try { const v = localStorage.getItem(STORAGE_KEY); if (v){ state.apiKey = atob(v); return; } } catch(e){}
+  if (DEFAULT_API_KEY) state.apiKey = DEFAULT_API_KEY;
+}
 function saveApiKey(key){ const t=(key||'').trim(); if(!t)return; try{localStorage.setItem(STORAGE_KEY, btoa(t));}catch(e){} state.apiKey=t; renderKeyState(); }
 function clearApiKey(){ try{localStorage.removeItem(STORAGE_KEY);}catch(e){} state.apiKey=''; renderKeyState(); }
 function renderKeyState(){
@@ -661,7 +671,12 @@ function init(){
   $('saveKeyBtn').onclick = () => saveApiKey($('keyInput').value);
   $('keyInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') saveApiKey($('keyInput').value); });
   $('eyeBtn').onclick = () => { const i = $('keyInput'); i.type = i.type === 'password' ? 'text' : 'password'; };
-  $('changeKeyBtn').onclick = () => { if (confirm('API 키를 삭제할까요?')) clearApiKey(); };
+  $('changeKeyBtn').onclick = () => {
+    $('keySetup').classList.remove('hidden');
+    $('app').classList.add('hidden');
+    $('keyInput').value = '';
+    $('keyInput').focus();
+  };
 
   makeUploader({ stateKey:'front', dz:'frontDropzone', fileInput:'frontFileInput', preview:'frontPreview', previewImg:'frontPreviewImg', clearBtn:'frontClearBtn', fileName:'frontFileName' });
   makeUploader({ stateKey:'back', dz:'backDropzone', fileInput:'backFileInput', preview:'backPreview', previewImg:'backPreviewImg', clearBtn:'backClearBtn', fileName:'backFileName' });
