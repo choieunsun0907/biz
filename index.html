@@ -334,12 +334,12 @@
 const STORAGE_KEY = 'ssaka_gemini_key_v1';
 const GEMINI_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent';
 
-// ⚠️ EMBEDDED API KEY — visible to anyone who can view this file.
-// If hosting on a PUBLIC GitHub Pages repo, you MUST restrict this key at
-// https://console.cloud.google.com/apis/credentials → Application restrictions
-// = Websites = https://<your-id>.github.io/biz/*  +  API restriction = Generative Language API.
-// Otherwise a leak can be used by anyone and rack up billing charges.
-const DEFAULT_API_KEY = 'AIzaSyBQaRjbXNjcV8-RGdsueMHVNpLtMi57G08';
+// ⚠️ Do NOT embed an API key in this file. If pushed to a public GitHub repo,
+// Google's secret-scanner detects it within minutes and auto-revokes the key —
+// no amount of HTTP-referrer restriction prevents that. Use the localStorage
+// flow below: the user enters the key once in their browser and it persists
+// there only, never in the file on disk / in the repo.
+const DEFAULT_API_KEY = '';
 
 // Fixed, auto-applied background removal — samples the actual corner background
 // color so pure white, off-white, light-gray and slight gradients are all
