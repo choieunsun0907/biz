@@ -38,8 +38,8 @@
 
   .card-box { border: 1px solid var(--line2); background: var(--white); padding: 32px; border-radius: 3px; }
 
-  .dual-upload { margin-top: 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  @media (max-width: 640px){ .dual-upload { grid-template-columns: 1fr; } }
+  .dual-upload { margin-top: 14px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  @media (max-width: 760px){ .dual-upload { grid-template-columns: 1fr; } }
   .col-label { font-size: 11px; font-weight: 600; color: var(--ink); margin-bottom: 8px; }
   .col-label .opt { color: var(--faint); font-weight: 400; }
   .dropzone { border: 2px dashed var(--line2); border-radius: 3px; padding: 32px 16px; text-align: center; cursor: pointer; transition: all .15s; background: var(--white); }
@@ -99,6 +99,50 @@
   .info-box { margin-top: 20px; padding: 16px; background: var(--amber-bg); border-left: 2px solid var(--amber-line); border-radius: 3px; }
   .info-title { font-size: 10px; text-transform: uppercase; letter-spacing: .15em; font-weight: 700; color: var(--amber-ink); margin-bottom: 8px; display:flex; align-items:center; gap:6px; }
   .info-box ul { list-style: none; font-size: 12px; color: #44403C; line-height: 1.7; }
+
+  /* Previous results history */
+  .history-section { margin-top: 36px; padding-top: 28px; border-top: 1px solid var(--line2); }
+  .history-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
+  .history-title { font-family: 'Instrument Serif', serif; font-size: 22px; color: var(--ink); letter-spacing: -0.01em; line-height: 1; }
+  .history-title em { font-style: italic; color: var(--muted); margin-left: 6px; font-size: 13px; font-family: 'Pretendard', sans-serif; }
+  .history-clear { font-size: 11px; color: var(--faint); background: none; border: none; cursor: pointer; padding: 4px 6px; }
+  .history-clear:hover { color: var(--red); }
+  .history-row {
+    display: flex; gap: 14px; overflow-x: auto; padding: 4px 2px 14px;
+    scrollbar-width: thin; scrollbar-color: var(--line2) transparent;
+  }
+  .history-row::-webkit-scrollbar { height: 6px; }
+  .history-row::-webkit-scrollbar-track { background: transparent; }
+  .history-row::-webkit-scrollbar-thumb { background: var(--line2); border-radius: 3px; }
+  .history-item { flex: 0 0 auto; width: 124px; cursor: pointer; transition: transform .15s; }
+  .history-item:hover { transform: translateY(-2px); }
+  .history-thumb-wrap { position: relative; }
+  .history-thumb {
+    width: 124px; height: 124px; object-fit: contain;
+    border: 1px solid var(--line); border-radius: 3px;
+    background-color: var(--bg);
+    background-image:
+      linear-gradient(45deg, #E7E5E4 25%, transparent 25%),
+      linear-gradient(-45deg, #E7E5E4 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #E7E5E4 75%),
+      linear-gradient(-45deg, transparent 75%, #E7E5E4 75%);
+    background-size: 12px 12px;
+    background-position: 0 0, 0 6px, 6px -6px, -6px 0;
+    display: block;
+  }
+  .history-dl-hint {
+    position: absolute; inset: auto 0 0 0; padding: 6px 8px;
+    background: linear-gradient(to top, rgba(28,25,23,0.82), rgba(28,25,23,0));
+    color: #fff; font-size: 10px; text-align: center; opacity: 0;
+    transition: opacity .15s; border-radius: 0 0 3px 3px;
+  }
+  .history-item:hover .history-dl-hint { opacity: 1; }
+  .history-meta {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 8px; font-size: 11px;
+  }
+  .history-view { color: var(--ink); font-weight: 500; }
+  .history-time { color: var(--muted); }
 
   footer { border-top: 1px solid var(--line); padding-top: 24px; margin-top: 64px; font-size: 12px; color: var(--faint); letter-spacing: .02em; }
 
@@ -232,9 +276,9 @@
       <div><b>문제가 생겼어요</b><span id="errMsg"></span></div>
     </div>
 
-    <!-- STEP 1: FRONT + BACK UPLOAD -->
-    <div class="step-head"><span class="step-num num">01</span><span class="step-label">평컷 업로드 (앞 / 뒤)</span></div>
-    <div class="step-note">🧥 <b>앞 컷은 필수</b>, 뒤 컷은 선택이에요. 뒤 컷을 함께 올리면 <b>앞면·뒷면 결과가 각각</b> 만들어지고, 투명 마네킹의 안쪽 넥라인도 정확해집니다.</div>
+    <!-- STEP 1: FRONT + BACK + SIDE UPLOAD -->
+    <div class="step-head"><span class="step-num num">01</span><span class="step-label">평컷 업로드 (앞 / 뒤 / 측면)</span></div>
+    <div class="step-note">🧥 <b>앞 컷은 필수</b>, 뒤·측면 컷은 선택이에요. 함께 올리면 <b>앞·뒤·측면 결과가 각각</b> 만들어지고, 디자인·색상 일관성이 더 좋아집니다.</div>
     <div class="dual-upload">
       <div class="upload-col">
         <div class="col-label">앞 컷 <span class="opt">· 필수</span></div>
@@ -253,11 +297,11 @@
         </div>
       </div>
       <div class="upload-col">
-        <div class="col-label">뒤 컷 <span class="opt">· 선택 (뒷면 결과 생성)</span></div>
+        <div class="col-label">뒤 컷 <span class="opt">· 선택</span></div>
         <div id="backDropzone" class="dropzone">
           <div style="font-size:20px;">⬆</div>
           <div class="dz-title">뒤 컷 업로드</div>
-          <div class="dz-sub">올리면 뒷면 결과도 따로 생성</div>
+          <div class="dz-sub">뒷면 결과 생성</div>
           <input id="backFileInput" type="file" accept="image/*" class="hidden" />
         </div>
         <div id="backPreview" class="col-preview hidden">
@@ -268,11 +312,31 @@
           <div id="backFileName" class="col-file num"></div>
         </div>
       </div>
+      <div class="upload-col">
+        <div class="col-label">측면 컷 <span class="opt">· 선택</span></div>
+        <div id="sideDropzone" class="dropzone">
+          <div style="font-size:20px;">⬆</div>
+          <div class="dz-title">측면 컷 업로드</div>
+          <div class="dz-sub">측면(프로필) 결과 생성</div>
+          <input id="sideFileInput" type="file" accept="image/*" class="hidden" />
+        </div>
+        <div id="sidePreview" class="col-preview hidden">
+          <div class="thumb-wrap">
+            <img id="sidePreviewImg" class="thumb" alt="side" />
+            <button id="sideClearBtn" class="x-btn">✕</button>
+          </div>
+          <div id="sideFileName" class="col-file num"></div>
+        </div>
+      </div>
     </div>
 
     <!-- STEP 2: CONFIG -->
     <div id="configSection" class="hidden">
       <div class="step-head"><span class="step-num num">02</span><span class="step-label">연출 설정</span></div>
+      <div class="cfg-group">
+        <div class="cfg-label">제품 종류</div>
+        <div id="garmentTypeCards" class="cfg-cards"></div>
+      </div>
       <div class="cfg-group">
         <div class="cfg-label">마네킹 타입</div>
         <div id="mannequinCards" class="cfg-cards"></div>
@@ -309,7 +373,17 @@
           <li>· 배경은 <b>자동으로 투명 처리</b>됩니다 (별도 조절 불필요)</li>
           <li>· 출력은 <b>2K(2048px) 고해상도 투명 PNG</b>입니다</li>
           <li>· 세부 조정은 <b>추가 프롬프트</b>에 적고 재생성하세요 (AI 출력은 매번 조금씩 달라요)</li>
+          <li>· 이전 결과는 아래 <b>"이전 결과"</b>에 자동 보관 — 클릭해서 다시 다운로드 가능</li>
         </ul>
+      </div>
+
+      <!-- Previous results history -->
+      <div id="historySection" class="history-section hidden">
+        <div class="history-head">
+          <div class="history-title">이전 결과<em id="historyCount"></em></div>
+          <button id="historyClearBtn" class="history-clear">↻ 히스토리 지우기</button>
+        </div>
+        <div id="historyContainer" class="history-row"></div>
       </div>
     </div>
   </section>
@@ -347,8 +421,15 @@ const DEFAULT_API_KEY = '';
 // Robust background removal: remove LIGHT (white~light-gray) pixels connected to
 // the image border. Independent of corner sampling, so a stray smudge in one
 // corner can't break it — consistent every time.
-const BG_WHITE_FULL = 208;  // min(R,G,B) >= this → fully transparent
-const BG_WHITE_SOFT = 178;  // min in [SOFT, FULL) → anti-aliased edge; below → product
+// Two-tier transparency to PROTECT the product from being eaten by bright
+// highlights/sheen on fabric. Only pixels close to PURE WHITE propagate the
+// flood. Slightly-bright pixels (ALIAS band) only get partial alpha when they
+// sit immediately next to a STRICT flooded pixel — they never extend the flood
+// further. This prevents the flood from walking down a brightness gradient
+// into the product (which was causing streaks on heather gray, satin sheen, etc).
+const BG_STRICT = 244;   // min(R,G,B) >= this → true near-white background; flood propagates here
+const BG_ALIAS  = 218;   // min in [ALIAS, STRICT) AND adjacent to STRICT → partial alpha (anti-alias only)
+const BG_EDGE_STEP = 12; // sum |dR|+|dG|+|dB| step that counts as a hard product edge → stop flood
 
 // Gemini-supported aspect ratios → keep output close to the original
 const SUPPORTED_RATIOS = [
@@ -367,12 +448,18 @@ const state = {
   apiKey: '',
   front: null,   // { preview, base64, mediaType, name, sizeMB, w, h }
   back: null,
+  side: null,
   results: [],   // [{ view, raw, transparent }]
-  config: { mannequinType: 'invisible', lighting: 'studio', zipClosed: true },
+  history: [],   // [{ ts, items: [{ view, transparent }] }] — archived previous generations
+  config: { garmentType: 'top', mannequinType: 'invisible', lighting: 'studio', zipClosed: true },
   busy: false,
 };
 
 const OPTIONS = {
+  garmentType: [
+    { id: 'top', label: '상의', sub: 'Top', desc: 'top wear such as a jersey, T-shirt, polo, shirt, hoodie, or jacket' },
+    { id: 'bottom', label: '하의', sub: 'Bottom', desc: 'bottom wear such as pants, trousers, shorts, joggers, or sweatpants' },
+  ],
   mannequin: [
     { id: 'invisible', label: '투명 마네킹', sub: 'Ghost', desc: 'a professional GHOST MANNEQUIN (invisible mannequin) effect' },
     { id: 'fullbody', label: '전신 마네킹', sub: 'Full', desc: 'a minimalist matte white full-body mannequin without facial features' },
@@ -432,11 +519,12 @@ function handleError(err){
 // ───── Config cards ─────
 function renderCards(){
   const groups = [
+    { el:'garmentTypeCards', key:'garmentType', opts:OPTIONS.garmentType },
     { el:'mannequinCards', key:'mannequinType', opts:OPTIONS.mannequin },
     { el:'lightingCards', key:'lighting', opts:OPTIONS.lighting },
   ];
   for (const g of groups){
-    const c = $(g.el); c.innerHTML = '';
+    const c = $(g.el); if (!c) continue; c.innerHTML = '';
     for (const opt of g.opts){
       const btn = document.createElement('button');
       btn.className = 'cfg-card' + (state.config[g.key]===opt.id ? ' sel' : '');
@@ -497,42 +585,74 @@ function refreshReady(){
 
 // ───── Prompt ─────
 function buildPrompt(view){
+  const gt = OPTIONS.garmentType.find(g => g.id === state.config.garmentType);
   const mt = OPTIONS.mannequin.find(m => m.id === state.config.mannequinType);
   const lt = OPTIONS.lighting.find(l => l.id === state.config.lighting);
+  const isTop = state.config.garmentType === 'top';
   const isGhost = state.config.mannequinType === 'invisible';
-  const hasBack = !!state.back;
-  const zip = state.config.zipClosed;
+  const zip = state.config.zipClosed && isTop;   // closure rule applies to tops only
   const extra = ($('extraPrompt').value || '').trim();
 
-  const viewBlock = view === 'front'
-    ? `=== VIEW: FRONT ===
-Render the FRONT view of the garment, straight-on and centered. The FIRST attached image is the FRONT cut and is the primary reference.` + (hasBack ? ` The SECOND attached image is the BACK cut — use it to correctly render the inner back collar/neckline visible through the neck opening, and to keep design details consistent.` : ``)
-    : `=== VIEW: BACK ===
-Render the BACK view of the garment, straight-on and centered. The FIRST attached image is the BACK cut and is the primary reference. The SECOND attached image is the FRONT cut — use it only to keep colors, logos and design details consistent. Show the clean outer back surface of the garment.`;
+  // View block — front / back / side. First image is always the primary; others are references.
+  const refNote = ' Any additional attached images are references for keeping colors, logos and design details consistent across views.';
+  const viewBlock =
+    view === 'front'
+      ? `=== VIEW: FRONT ===
+Render the FRONT view of the ${gt.desc}, straight-on and centered. The garment must appear as if worn by an invisible person standing upright in a neutral STRAIGHT pose, facing the camera squarely. The FIRST attached image is the FRONT cut and is the primary reference.${refNote}`
+      : view === 'back'
+      ? `=== VIEW: BACK ===
+Render the BACK view of the ${gt.desc}, straight-on and centered. The garment must appear as if worn by an invisible person standing upright in a neutral STRAIGHT pose, facing directly away from the camera. The FIRST attached image is the BACK cut and is the primary reference.${refNote} Show the clean outer back surface.`
+      : `=== VIEW: SIDE (PROFILE) ===
+Render a 90° SIDE / profile view of the ${gt.desc}. The garment must appear as if worn by an invisible person standing in a STRAIGHT upright pose, body in profile (facing left or right). Only one side of the body's volume is visible. The FIRST attached image is the SIDE cut and is the primary reference.${refNote}`;
 
   const zipBlock = zip
     ? `
 
 === CLOSURE (필수) ===
-The garment MUST be shown FULLY CLOSED and completely zipped up: the front zipper fastened all the way to the top of the collar, no open front, no gap, no exposed inner lining at the chest. Present a neatly closed garment.`
+The garment MUST be shown FULLY CLOSED and completely zipped up: front zipper fastened all the way to the top of the collar, no open front, no gap, no exposed inner lining at the chest. Present a neatly closed garment.`
     : '';
 
-  const ghostBlock = isGhost
-    ? `
+  // Ghost-mannequin block — branches on garment type (top vs bottom) and view
+  let ghostBlock = '';
+  if (isGhost){
+    if (isTop){
+      ghostBlock = `
 
-=== GHOST MANNEQUIN — TARGET LOOK (가장 중요) ===
-The input is a FLAT, 2D laid-flat product photo with little or no real volume. You MUST FULLY RECONSTRUCT it into a three-dimensional garment as if worn — inflate it with realistic body volume; NEVER leave it looking flat, folded, creased-down, or laid-on-a-surface.
-Reproduce premium sportswear e-commerce ghost-mannequin (hollow-man / invisible-mannequin) photography. The garment must look as if worn by an invisible person standing upright, facing the camera:
-- Structured STANDING COLLAR that holds its shape and stands up around an invisible neck.
-- Broad, filled SHOULDERS with a natural slope; rounded CHEST and TORSO volume; the body fully filled out — never collapsed, creased flat, or pasted-looking.
-- BOTH SLEEVES hang down naturally and symmetrically with realistic tubular arm volume, angled slightly outward away from the body, with the ribbed/elastic cuffs visible at the ends.
-- The whole piece reads as one complete, rounded 3D worn form floating in space with a clear sense of depth.
-- ABSOLUTELY NO mannequin, person, body, skin, head, neck, hands, hanger or stand visible anywhere.
+=== GHOST MANNEQUIN — TOPS TARGET LOOK (가장 중요) ===
+The input is a FLAT, 2D laid-flat top photograph with little or no real volume. You MUST FULLY RECONSTRUCT it into a three-dimensional worn top — inflate it with realistic upper-body volume; NEVER leave it looking flat, folded, creased-down, or laid-on-a-surface.
+Reproduce premium sportswear e-commerce ghost-mannequin (hollow-man / invisible-mannequin) photography. The top must look as if worn by an invisible person standing upright in a STRAIGHT neutral pose:
+- Structured STANDING COLLAR that holds its shape around an invisible neck.
+- Broad, filled SHOULDERS with a natural slope; rounded CHEST and TORSO volume; body fully filled out — never collapsed, creased flat, or pasted-looking.
+- BOTH SLEEVES hang straight down naturally and symmetrically with realistic tubular arm volume, angled slightly outward away from the body, with cuffs visible at the ends.
+- One complete, rounded 3D worn form floating in space with clear depth.
+- ABSOLUTELY NO mannequin, person, body, skin, head, neck, hands, arms, hanger or stand visible anywhere.
 ` + (view === 'front'
-      ? `- The collar opening reveals the INNER BACK of the neckline (classic ghost-mannequin neck-join) so it looks genuinely hollow and worn.`
-      : `- Show a clean dimensional outer back with the same filled, rounded volume.`) + `
-- Convey depth ONLY through the garment's own rounded volume, self-shadowing inside folds, and gentle fabric sheen — NOT through any shadow cast onto the background. Crisp clean edges, sharp focus, high resolution. Match the deep, fully-worn 3D dimensional quality of a professional sportswear catalog ghost-mannequin shot.`
-    : '';
+        ? `- The collar opening reveals the INNER BACK of the neckline (classic ghost-mannequin neck-join) so it looks genuinely hollow and worn.`
+        : view === 'back'
+        ? `- Show a clean dimensional outer back with the same filled, rounded volume.`
+        : `- Show the clean side profile silhouette with proper shoulder slope, sleeve hanging at the side, and the side outline of the torso.`) + `
+- Convey depth ONLY through the garment's own rounded volume and self-shadowing inside folds — NOT through any shadow cast onto the background. Crisp clean edges, sharp focus. Match a professional sportswear catalog ghost-mannequin shot.`;
+    } else {
+      ghostBlock = `
+
+=== GHOST MANNEQUIN — BOTTOMS TARGET LOOK (가장 중요) ===
+The input is a FLAT, 2D laid-flat bottom photograph with little or no real volume. You MUST FULLY RECONSTRUCT it into a three-dimensional worn bottom — inflate it with realistic lower-body volume; NEVER leave it looking flat, folded, creased-down, or laid-on-a-surface.
+Reproduce premium e-commerce ghost-mannequin (hollow-man / invisible-mannequin) photography for bottoms. The garment must look as if worn by an invisible person standing in a STRAIGHT neutral pose:
+- Structured WAISTBAND that holds its circular shape around an invisible waist (with belt loops, drawstrings, or elastic clearly visible if present in the input).
+- Filled HIPS and SEAT with natural rounded volume — never collapsed flat.
+- BOTH LEGS hang STRAIGHT DOWN, PARALLEL to each other, with realistic tubular leg volume; legs are NOT spread apart, NOT crossed, NOT angled, NOT bent — a perfectly neutral straight standing pose.
+- For pants/trousers/joggers: full leg length with natural drape; hems / cuffs visible at the bottom with clear tubular openings.
+- For shorts: leg openings hang naturally with realistic tubular volume; hems are clearly visible.
+- One complete, rounded 3D worn form floating in space with clear depth.
+- ABSOLUTELY NO mannequin, person, body, skin, legs, feet, shoes, hanger or stand visible anywhere.
+` + (view === 'front'
+        ? `- Front view: show the front rise, fly/zipper area (if present) accurately, pockets and front details visible.`
+        : view === 'back'
+        ? `- Back view: show the back rise, back pockets and seat shape with proper dimensional volume.`
+        : `- Side view: show the clean side profile with proper hip curve, one leg's outer line straight from hip to hem, side seam visible.`) + `
+- Convey depth ONLY through the garment's own rounded volume and self-shadowing inside folds — NOT through any shadow cast onto the background. Crisp clean edges, sharp focus.`;
+    }
+  }
 
   const extraBlock = extra
     ? `
@@ -541,12 +661,18 @@ Reproduce premium sportswear e-commerce ghost-mannequin (hollow-man / invisible-
 ${extra}`
     : '';
 
-  const fitBlock = `
+  // Fit block adapts to garment type
+  const fitBlock = isTop
+    ? `
 
 === FIT — 일자핏 (STRAIGHT REGULAR FIT) ===
-Show the garment in a STRAIGHT, regular straight fit on BOTH front and back views, kept consistent between them. The left and right sides must read as STRAIGHT VERTICAL LINES from under the arms straight down to the hem — absolutely NO inward waist curve, NO waist pinch, NO hourglass or tapered silhouette, NO hem flare, and NO exaggerated chest or muscle curves. Keep a clean, even, boxy-straight vertical drape while still showing real 3D worn volume.`;
+Show the top in a STRAIGHT, regular straight fit consistent across ALL views (front, back, side). The left and right sides must read as STRAIGHT VERTICAL LINES from under the arms straight down to the hem — absolutely NO inward waist curve, NO waist pinch, NO hourglass or tapered silhouette, NO hem flare, NO exaggerated chest or muscle curves. Clean, even, boxy-straight vertical drape with real 3D worn volume.`
+    : `
 
-  return `Transform the attached flat-lay product photograph(s) into a professional e-commerce product shot displayed on ${mt.desc}.
+=== FIT — 일자핏 (STRAIGHT REGULAR FIT) ===
+Show the bottom in a STRAIGHT, regular straight-leg fit consistent across ALL views (front, back, side). The legs must hang STRAIGHT DOWN and PARALLEL to each other in a neutral standing pose. The outer leg lines must be STRAIGHT VERTICAL LINES from hip to hem — absolutely NO taper, NO flare, NO bootcut, NO skinny pinch, NO bagginess curve. Legs are NOT spread, NOT crossed, NOT angled. Clean straight-leg vertical drape with real 3D worn volume.`;
+
+  return `Transform the attached flat-lay product photograph(s) into a professional e-commerce product shot of a ${gt.desc} displayed on ${mt.desc}.
 
 ${viewBlock}
 
@@ -554,7 +680,7 @@ CRITICAL — preserve the original product 100%:
 - Keep ALL original colors, logos, brand marks, prints, text, patterns, embroidery, trims, stitching EXACTLY as in the input, with full fine detail
 - Do NOT add any new text, logos, labels, watermarks, or graphics
 - Do NOT change the design, cut, or proportions
-- PRESERVE every WHITE and light-colored part of the product (white collars, white trims, white stripes, white panels, white logos) with full crisp detail and a clearly defined edge. These white product parts must stay clearly DISTINCT from the white background and must NEVER blend into, merge with, or get lost against the background.
+- PRESERVE every WHITE and light-colored part of the product (white collars, white trims, white stripes, white panels, white logos, white waistbands) with full crisp detail and a clearly defined edge. These white product parts must stay clearly DISTINCT from the white background and must NEVER blend into, merge with, or get lost against the background.
 
 SHOT COMPOSITION:
 - ${lt.desc}
@@ -564,23 +690,23 @@ SHOT COMPOSITION:
 
 3D / 입체감 (필수):
 - STRONG realistic three-dimensional volume — fully dimensional and worn, NEVER flat or like a pasted cut-out.
-- Natural fabric tension, drape, folds, soft self-shadows; believable thickness at edges, collar, shoulders, cuffs and hem.${fitBlock}${zipBlock}${ghostBlock}${extraBlock}
+- Natural fabric tension, drape, folds, soft self-shadows; believable thickness at all edges and seams.${fitBlock}${zipBlock}${ghostBlock}${extraBlock}
 
 OUTPUT: A single high-quality photorealistic product image, no text, no captions, no borders.`;
 }
 
 // ───── Single Gemini call → data URL ─────
 async function callGemini(view){
-  const primary = view === 'front' ? state.front : state.back;
+  const primary = view === 'front' ? state.front : view === 'back' ? state.back : state.side;
   const ratio = nearestRatio(primary.w, primary.h);
   const parts = [{ text: buildPrompt(view) }];
-  if (view === 'front'){
-    parts.push({ inline_data: { mime_type: state.front.mediaType, data: state.front.base64 } });
-    if (state.back) parts.push({ inline_data: { mime_type: state.back.mediaType, data: state.back.base64 } });
-  } else {
-    parts.push({ inline_data: { mime_type: state.back.mediaType, data: state.back.base64 } });
-    parts.push({ inline_data: { mime_type: state.front.mediaType, data: state.front.base64 } });
-  }
+  // Primary first — this is the view to render
+  parts.push({ inline_data: { mime_type: primary.mediaType, data: primary.base64 } });
+  // Other available cuts as references for design/color consistency
+  const addRef = (img) => { if (img && img !== primary) parts.push({ inline_data: { mime_type: img.mediaType, data: img.base64 } }); };
+  if (view === 'front'){ addRef(state.back); addRef(state.side); }
+  else if (view === 'back'){ addRef(state.front); addRef(state.side); }
+  else { addRef(state.front); addRef(state.back); }
   const res = await fetch(GEMINI_ENDPOINT, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-goog-api-key': state.apiKey },
@@ -618,19 +744,24 @@ function removeBackground(dataUrl){
         const imageData = ctx.getImageData(0, 0, W, H);
         const data = imageData.data;
 
-        // Edge-aware flood-fill from the border. Removes the flat LIGHT background
-        // but STOPS at any color edge, so white/light PRODUCT parts (collars, trims,
-        // stripes, logos) bordered or shaded even slightly are never eaten.
-        const span = BG_WHITE_FULL - BG_WHITE_SOFT;
-        const EDGE_STEP = 20;   // color step (sum |dR|+|dG|+|dB|) that counts as an edge → stop
+        // Two-tier flood-fill: ONLY STRICT (near-pure-white) pixels propagate the
+        // flood. ALIAS-band pixels (slightly bright, like fabric highlights or
+        // sheen) only receive a partial alpha when they are DIRECTLY adjacent to
+        // a flooded STRICT pixel — they never extend the flood themselves. This
+        // is what stops the algorithm from eating bright highlight streaks on
+        // heather/satin fabric (the issue that caused the white streaks on the
+        // gray t-shirt).
         const visited = new Uint8Array(W*H);
         const stack = [];
-        const lum = (p) => Math.min(data[p], data[p+1], data[p+2]);
+        const lum  = (p) => Math.min(data[p], data[p+1], data[p+2]);
         const step = (p, q) => Math.abs(data[p]-data[q]) + Math.abs(data[p+1]-data[q+1]) + Math.abs(data[p+2]-data[q+2]);
+        const aliasSpan = BG_STRICT - BG_ALIAS;
+
+        // Seed border pixels that are STRICTLY background (near-pure-white)
         const seed = (x, y) => {
           if (x<0||x>=W||y<0||y>=H) return;
           const idx = y*W+x; if (visited[idx]) return;
-          if (lum(idx*4) < BG_WHITE_SOFT) return;   // border pixel is product-dark → don't seed
+          if (lum(idx*4) < BG_STRICT) return;
           stack.push(idx);
         };
         for (let x=0;x<W;x++){ seed(x,0); seed(x,H-1); }
@@ -641,9 +772,8 @@ function removeBackground(dataUrl){
           if (visited[idx]) continue;
           visited[idx] = 1;
           const p = idx*4;
-          const minC = lum(p);
-          if (minC >= BG_WHITE_FULL){ data[p+3] = 0; }                         // flat light bg → transparent
-          else { const t = (minC - BG_WHITE_SOFT) / span; data[p+3] = Math.round(255 * (1 - t)); } // soft fade
+          data[p+3] = 0;   // STRICT background → fully transparent
+
           const x = idx % W, y = (idx - x) / W;
           const nb = [[x+1,y],[x-1,y],[x,y+1],[x,y-1]];
           for (let j=0;j<4;j++){
@@ -651,9 +781,19 @@ function removeBackground(dataUrl){
             if (nx<0||nx>=W||ny<0||ny>=H) continue;
             const nidx = ny*W+nx; if (visited[nidx]) continue;
             const np = nidx*4;
-            if (lum(np) < BG_WHITE_SOFT) continue;   // neighbor is product → stop
-            if (step(p, np) > EDGE_STEP) continue;   // an edge sits between → product boundary, stop
-            stack.push(nidx);
+            const nmin = lum(np);
+            if (nmin >= BG_STRICT){
+              // Extend flood ONLY across small steps; a sharp jump = product edge → stop.
+              if (step(p, np) <= BG_EDGE_STEP) stack.push(nidx);
+            } else if (nmin >= BG_ALIAS){
+              // Anti-alias the product edge with a partial alpha — DO NOT propagate.
+              // This stops the flood from walking into the product through a soft
+              // brightness gradient (fabric sheen, highlights).
+              const t = (nmin - BG_ALIAS) / aliasSpan;
+              const newAlpha = Math.round(255 * (1 - t));
+              if (data[np+3] > newAlpha) data[np+3] = newAlpha;
+            }
+            // else (nmin < BG_ALIAS): clearly product → never touched, stays fully opaque.
           }
         }
         ctx.putImageData(imageData, 0, 0);
@@ -682,14 +822,29 @@ function removeBackground(dataUrl){
 async function generate(){
   if (!state.apiKey){ showError('Gemini API 키를 먼저 입력해주세요'); return; }
   if (!state.front || state.busy) return;
+
+  // Archive any existing current results to history (transparent PNGs only, to save memory)
+  if (state.results.length){
+    state.history.unshift({
+      ts: Date.now(),
+      items: state.results.map(r => ({ view: r.view, transparent: r.transparent }))
+    });
+    if (state.history.length > 12) state.history = state.history.slice(0, 12);  // cap to last 12 sessions
+  }
+
   state.busy = true; clearError(); state.results = [];
   $('resultSection').classList.remove('hidden');
   $('resultsContainer').innerHTML = '<div class="res-label">생성 대기 중...</div>';
+  renderHistory();
 
   try {
-    // FRONT
+    const total = 1 + (state.back ? 1 : 0) + (state.side ? 1 : 0);
+    let step = 0;
+
+    // FRONT (always)
+    step++;
     setGenerating(true,
-      state.back ? '앞면 입체 변환 중 · 1/2' : '앞면 입체 변환 중',
+      total > 1 ? `앞면 입체 변환 중 · ${step}/${total}` : '앞면 입체 변환 중',
       '평컷을 2K 마네킹 컷으로 만들고 있어요 (약 15–30초)');
     const frontRaw = await callGemini('front');
     setGenerating(true, '앞면 배경 투명화 중', '제품 디테일을 보존하며 배경을 제거하고 있어요');
@@ -699,11 +854,23 @@ async function generate(){
 
     // BACK (optional)
     if (state.back){
-      setGenerating(true, '뒷면 입체 변환 중 · 2/2', '뒷면 마네킹 컷을 생성하고 있어요 (약 15–30초)');
+      step++;
+      setGenerating(true, `뒷면 입체 변환 중 · ${step}/${total}`, '뒷면 마네킹 컷을 생성하고 있어요 (약 15–30초)');
       const backRaw = await callGemini('back');
       setGenerating(true, '뒷면 배경 투명화 중', '제품 디테일을 보존하며 배경을 제거하고 있어요');
       const backTr = await removeBackground(backRaw);
       state.results.push({ view:'back', raw:backRaw, transparent:backTr });
+      renderResults();
+    }
+
+    // SIDE (optional)
+    if (state.side){
+      step++;
+      setGenerating(true, `측면 입체 변환 중 · ${step}/${total}`, '측면(프로필) 마네킹 컷을 생성하고 있어요 (약 15–30초)');
+      const sideRaw = await callGemini('side');
+      setGenerating(true, '측면 배경 투명화 중', '제품 디테일을 보존하며 배경을 제거하고 있어요');
+      const sideTr = await removeBackground(sideRaw);
+      state.results.push({ view:'side', raw:sideRaw, transparent:sideTr });
       renderResults();
     }
   } catch (err){
@@ -735,8 +902,8 @@ function renderResults(){
   const c = $('resultsContainer');
   c.innerHTML = '';
   state.results.forEach((r, i) => {
-    const label = r.view === 'front' ? '앞면 · FRONT' : '뒷면 · BACK';
-    const dlLabel = r.view === 'front' ? '앞면' : '뒷면';
+    const label = r.view === 'front' ? '앞면 · FRONT' : r.view === 'back' ? '뒷면 · BACK' : '측면 · SIDE';
+    const dlLabel = r.view === 'front' ? '앞면' : r.view === 'back' ? '뒷면' : '측면';
     const block = document.createElement('div');
     block.className = 'result-block';
     block.innerHTML =
@@ -761,12 +928,64 @@ function downloadResult(i){
 }
 function downloadAll(){ state.results.forEach((_, i) => setTimeout(() => downloadResult(i), i * 250)); }
 
+// ───── Previous-results history ─────
+function renderHistory(){
+  const c = $('historyContainer'); const sec = $('historySection');
+  if (!c || !sec) return;
+  const totalItems = state.history.reduce((n, s) => n + s.items.length, 0);
+  if (!totalItems){ c.innerHTML = ''; sec.classList.add('hidden'); return; }
+  sec.classList.remove('hidden');
+  const countEl = $('historyCount'); if (countEl) countEl.textContent = ' · ' + totalItems + '장';
+  c.innerHTML = '';
+  state.history.forEach((session, sIdx) => {
+    const time = new Date(session.ts);
+    const timeStr = time.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+    session.items.forEach((it, rIdx) => {
+      const viewLabel = it.view === 'front' ? '앞면' : it.view === 'back' ? '뒷면' : '측면';
+      const item = document.createElement('div');
+      item.className = 'history-item';
+      item.title = '클릭해서 ' + viewLabel + ' PNG 다운로드';
+      item.innerHTML =
+        '<div class="history-thumb-wrap">' +
+          '<img class="history-thumb" src="' + it.transparent + '" alt="prev ' + viewLabel + '">' +
+          '<div class="history-dl-hint">⬇ 클릭해서 저장</div>' +
+        '</div>' +
+        '<div class="history-meta">' +
+          '<span class="history-view">' + viewLabel + '</span>' +
+          '<span class="history-time num">' + timeStr + '</span>' +
+        '</div>';
+      item.onclick = () => downloadHistoryItem(sIdx, rIdx);
+      c.appendChild(item);
+    });
+  });
+}
+
+function downloadHistoryItem(sIdx, rIdx){
+  const session = state.history[sIdx]; if (!session) return;
+  const it = session.items[rIdx]; if (!it) return;
+  const a = document.createElement('a'); a.href = it.transparent;
+  const time = new Date(session.ts);
+  const stamp = time.getFullYear().toString() + String(time.getMonth()+1).padStart(2,'0') + String(time.getDate()).padStart(2,'0')
+              + '_' + String(time.getHours()).padStart(2,'0') + String(time.getMinutes()).padStart(2,'0');
+  const base = (state.front && state.front.name || 'product').replace(/\.[^.]+$/, '').replace(/[^\w가-힣]+/g, '-').slice(0, 24);
+  a.download = 'mannequin_' + base + '_' + it.view + '_prev_' + stamp + '.png';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+function clearHistory(){
+  if (!state.history.length) return;
+  if (!confirm('이전 결과를 모두 지울까요? (현재 결과는 유지)')) return;
+  state.history = [];
+  renderHistory();
+}
+
 function resetAll(){
-  state.front = null; state.back = null; state.results = [];
+  state.front = null; state.back = null; state.side = null; state.results = []; state.history = [];
   $('frontDropzone').classList.remove('hidden'); $('frontPreview').classList.add('hidden'); $('frontFileInput').value = '';
   $('backDropzone').classList.remove('hidden'); $('backPreview').classList.add('hidden'); $('backFileInput').value = '';
+  $('sideDropzone').classList.remove('hidden'); $('sidePreview').classList.add('hidden'); $('sideFileInput').value = '';
   $('configSection').classList.add('hidden'); $('resultSection').classList.add('hidden');
-  $('resultsContainer').innerHTML = '';
+  $('resultsContainer').innerHTML = ''; renderHistory();
   clearError(); refreshReady();
 }
 
@@ -786,12 +1005,14 @@ function init(){
 
   makeUploader({ stateKey:'front', dz:'frontDropzone', fileInput:'frontFileInput', preview:'frontPreview', previewImg:'frontPreviewImg', clearBtn:'frontClearBtn', fileName:'frontFileName' });
   makeUploader({ stateKey:'back', dz:'backDropzone', fileInput:'backFileInput', preview:'backPreview', previewImg:'backPreviewImg', clearBtn:'backClearBtn', fileName:'backFileName' });
+  makeUploader({ stateKey:'side', dz:'sideDropzone', fileInput:'sideFileInput', preview:'sidePreview', previewImg:'sidePreviewImg', clearBtn:'sideClearBtn', fileName:'sideFileName' });
 
   $('extraPrompt').addEventListener('keydown', (e) => { if (e.key === 'Enter') generate(); });
   $('generateBtn').onclick = generate;
   $('regenBtn').onclick = generate;
   $('resetBtn').onclick = resetAll;
   $('downloadAllBtn').onclick = downloadAll;
+  $('historyClearBtn').onclick = clearHistory;
 
   refreshReady();
 }
