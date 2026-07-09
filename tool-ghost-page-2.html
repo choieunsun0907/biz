@@ -29,7 +29,43 @@
     </nav>
   </header>
   <main class="ssaka-frame">
-    <iframe title="고스트 페이지 2" src="./E-BIZ_고스트변환페이지2.html"></iframe>
+    <iframe id="ghost2Frame" title="고스트 페이지 2" src="./E-BIZ_고스트변환페이지2.html"></iframe>
   </main>
+  <script>
+    const frame = document.getElementById('ghost2Frame');
+    frame.addEventListener('load', () => {
+      try {
+        const doc = frame.contentDocument || frame.contentWindow.document;
+        if (!doc || !doc.head) return;
+
+        const fontLinkId = 'ssaka-font-sync-link';
+        if (!doc.getElementById(fontLinkId)) {
+          const link = doc.createElement('link');
+          link.id = fontLinkId;
+          link.rel = 'stylesheet';
+          link.href = 'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;650;700;800&family=JetBrains+Mono:wght@400;550&display=swap';
+          doc.head.appendChild(link);
+        }
+
+        const styleId = 'ssaka-font-sync-style';
+        const oldStyle = doc.getElementById(styleId);
+        if (oldStyle) oldStyle.remove();
+        const style = doc.createElement('style');
+        style.id = styleId;
+        style.textContent = `
+          body, button, input, textarea, select, .serif, h1.title, .lead, .step-num, .history-title, .history-title em {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+          }
+          .num {
+            font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace !important;
+            font-variant-numeric: tabular-nums;
+          }
+        `;
+        doc.head.appendChild(style);
+      } catch (err) {
+        console.warn('Font sync skipped:', err);
+      }
+    });
+  </script>
 </body>
 </html>
