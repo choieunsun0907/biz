@@ -39,12 +39,12 @@
       transition: all .15s ease;
     }
     nav a:hover { background: #111827; color: #fff; border-color: #111827; }
-    main { max-width: 1080px; margin: 0 auto; padding: 72px 24px; }
+    main { max-width: 1160px; margin: 0 auto; padding: 72px 24px; }
     .hero { text-align: center; margin-bottom: 42px; }
     .eyebrow { font-size: 12px; font-weight: 800; letter-spacing: .18em; color: #991b1b; margin-bottom: 12px; }
     h1 { font-size: clamp(34px, 5vw, 58px); line-height: 1.05; letter-spacing: -0.045em; margin-bottom: 18px; }
     .desc { color: #6b7280; font-size: 16px; line-height: 1.7; }
-    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; margin-top: 36px; }
+    .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; margin-top: 36px; }
     .card {
       display: block;
       text-decoration: none;
@@ -53,18 +53,32 @@
       border: 1px solid #e5e7eb;
       border-radius: 24px;
       padding: 32px;
-      min-height: 260px;
+      min-height: 280px;
       box-shadow: 0 18px 48px rgba(15, 23, 42, 0.06);
       transition: all .18s ease;
     }
     .card:hover { transform: translateY(-4px); border-color: #111827; box-shadow: 0 24px 70px rgba(15, 23, 42, 0.12); }
+    .card.feature { border-color: #bfdbfe; background: linear-gradient(180deg, #ffffff 0%, #eff6ff 100%); }
     .num {
       width: 42px; height: 42px; border-radius: 50%; background: #111827; color: #fff;
       display: flex; align-items: center; justify-content: center; font-weight: 900; margin-bottom: 24px;
     }
+    .card.feature .num { background: linear-gradient(135deg, #2563eb, #0ea5e9); }
     .card h2 { font-size: 25px; letter-spacing: -0.03em; margin-bottom: 12px; }
     .card p { color: #6b7280; font-size: 14px; line-height: 1.7; margin-bottom: 24px; }
     .btn { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 800; color: #991b1b; }
+    .card.feature .btn { color: #2563eb; }
+    .badge {
+      display: inline-flex;
+      margin-bottom: 14px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: #dbeafe;
+      color: #1d4ed8;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: .04em;
+    }
     .notice {
       margin-top: 28px;
       border: 1px solid #fde68a;
@@ -76,11 +90,13 @@
       line-height: 1.6;
     }
     footer { text-align: center; color: #9ca3af; font-size: 12px; padding: 28px; }
+    @media (max-width: 980px) {
+      .grid { grid-template-columns: 1fr; }
+    }
     @media (max-width: 760px) {
       header { height: auto; padding: 18px 20px; align-items: flex-start; flex-direction: column; gap: 14px; }
       nav { width: 100%; flex-direction: column; }
       nav a { text-align: center; }
-      .grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -90,15 +106,16 @@
     <nav>
       <a href="./E-BIZ_고스트변환페이지1.html">변환페이지 1</a>
       <a href="./E-BIZ_고스트변환페이지2.html">변환페이지 2</a>
+      <a href="./banner-studio.html">배너 스튜디오</a>
     </nav>
   </header>
 
   <main>
     <section class="hero">
-      <div class="eyebrow">GHOST MANNEQUIN CONVERTER</div>
-      <h1>평면컷을 고스트마네킹 이미지로 변환</h1>
+      <div class="eyebrow">AI CREATIVE WORKSPACE</div>
+      <h1>싸카 E-BIZ 이미지 제작 스튜디오</h1>
       <p class="desc">
-        사용할 변환 페이지를 선택하세요.<br />
+        고스트마네킹 변환부터 배너 이미지 생성까지 한 곳에서 선택하세요.<br />
         Gemini API Key는 각 페이지에서 따로 입력하며, 브라우저에만 저장됩니다.
       </p>
     </section>
@@ -117,10 +134,18 @@
         <p>SSAKA STUDIO 단일 HTML 버전입니다. 앞, 뒤, 측면 컷을 함께 올려 2K 투명 PNG로 변환하는 페이지입니다.</p>
         <span class="btn">페이지 열기 →</span>
       </a>
+
+      <a class="card feature" href="./banner-studio.html">
+        <div class="num">3</div>
+        <span class="badge">NEW MENU</span>
+        <h2>SSAKA Banner Studio</h2>
+        <p>상품 코드와 프롬프트를 입력해 쇼핑몰·기획전·프로모션용 고품질 배너 이미지를 생성하는 3번째 메뉴입니다.</p>
+        <span class="btn">배너 스튜디오 열기 →</span>
+      </a>
     </section>
 
     <div class="notice">
-      ⚠️ 두 변환 페이지 HTML 파일이 저장소 루트에 함께 있어야 메뉴 링크가 정상 작동합니다. API Key는 코드에 넣지 않고 각 페이지에서 직접 입력하세요.
+      ⚠️ 세 페이지 HTML 파일이 저장소 루트에 함께 있어야 메뉴 링크가 정상 작동합니다. API Key는 코드에 넣지 않고 각 페이지에서 직접 입력하세요.
     </div>
   </main>
 
