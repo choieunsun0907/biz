@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SSAKA E-BIZ STUDIO · 롤링배너 제작</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Segoe UI", sans-serif; background:#f8fafc; color:#111827; overflow:hidden; }
+    .ssaka-topbar { position: fixed; top:0; left:0; right:0; height:74px; z-index:1000; display:flex; align-items:center; justify-content:space-between; gap:18px; padding:0 25px; border-bottom:1px solid #e5e7eb; background:rgba(255,255,255,.96); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); }
+    .ssaka-logo { font-size:20px; font-weight:900; letter-spacing:-.04em; color:#111827; text-decoration:none; white-space:nowrap; }
+    .ssaka-menu { display:flex; align-items:center; justify-content:flex-end; flex-wrap:wrap; gap:10px; }
+    .ssaka-menu a { min-height:46px; display:inline-flex; align-items:center; justify-content:center; padding:0 18px; border-radius:999px; border:1px solid #e5e7eb; background:#fff; color:#374151; text-decoration:none; font-size:15px; font-weight:800; letter-spacing:-.03em; transition:all .15s ease; }
+    .ssaka-menu a:hover, .ssaka-menu a.active { background:#111827; border-color:#111827; color:#fff; }
+    .ssaka-frame { position:fixed; left:0; right:0; top:74px; bottom:0; background:#fff; }
+    iframe { width:100%; height:100%; border:0; display:block; background:#fff; }
+    @media (max-width:860px){ body{overflow:auto;} .ssaka-topbar{height:auto; min-height:74px; align-items:flex-start; flex-direction:column; padding:18px 20px;} .ssaka-menu{width:100%; flex-direction:column; align-items:stretch;} .ssaka-menu a{width:100%;} .ssaka-frame{top:250px;} }
+  </style>
+</head>
+<body>
+  <header class="ssaka-topbar">
+    <a class="ssaka-logo" href="./index.html">SSAKA E-BIZ STUDIO</a>
+    <nav class="ssaka-menu" aria-label="SSAKA E-BIZ Studio Menu">
+      <a href="./tool-ghost-page-1.html">고스트 페이지 1</a>
+      <a href="./tool-ghost-page-2.html">고스트 페이지 2</a>
+      <a class="active" href="./tool-banner-studio.html">롤링배너 제작</a>
+      <a href="./tool-editorial-detail.html">웹 상세페이지</a>
+    </nav>
+  </header>
+  <main class="ssaka-frame">
+    <iframe title="롤링배너 제작" src="./banner-studio.html"></iframe>
+  </main>
+</body>
+</html>
