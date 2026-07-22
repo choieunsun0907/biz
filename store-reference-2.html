@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -1713,6 +1714,14 @@
 
     manualAnalyzeBtn.disabled = true;
     manualAnalyzeBtn.textContent = '분석 중...';
+    step2AnalysisPreview.classList.remove('hidden');
+    step2AnalysisPreview.innerHTML = `
+      <div class="flex flex-col items-center justify-center py-10 text-center">
+        <div class="spinner mb-5" style="width:36px;height:36px;"></div>
+        <p class="font-mono text-xs tracking-[0.2em] text-brand-600 uppercase mb-1.5">Analyzing</p>
+        <p class="text-slate-500 text-sm">AI가 이미지를 분석하고 카피를 작성하고 있어요...</p>
+      </div>
+    `;
     try {
       const orderedImages = [
         state.images[state.mainIndex],
@@ -1724,6 +1733,8 @@
     } catch (err) {
       console.error('[SSAKA STUDIO] 수동 분석 실패:', err);
       showToast('AI 분석에 실패했어요: ' + err.message);
+      step2AnalysisPreview.classList.add('hidden');
+      step2AnalysisPreview.innerHTML = '';
     } finally {
       manualAnalyzeBtn.disabled = false;
       manualAnalyzeBtn.textContent = '🔍 AI 분석 미리보기';
