@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -353,6 +354,12 @@
   }
   @keyframes spin{ to{ transform:rotate(360deg); } }
   .loading-text{font-size:12.5px;font-weight:600;color:var(--text);text-align:center;padding:0 16px;}
+  .ai-analysis-loading{
+    display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--card-line);
+    border-radius:var(--radius);padding:20px 24px;
+  }
+  .ai-analysis-loading .spinner{width:26px;height:26px;flex-shrink:0;}
+  .ai-analysis-loading .loading-text{text-align:left;padding:0;}
   .spinner.small{width:18px;height:18px;border-width:2px;flex-shrink:0;}
   .bg-gen-banner{
     display:flex;align-items:center;gap:10px;background:#EAF2F6;border:1px solid #CFE0EA;
@@ -489,6 +496,10 @@
             </div>
             <div id="autoGenHint" class="hint-line" style="margin-top:6px;"></div>
             <div id="aiProductAnalysisStatus" class="ai-status"></div>
+            <div id="aiAnalysisLoading" class="ai-analysis-loading" style="display:none;">
+              <div class="spinner"></div>
+              <div class="loading-text">AI가 제품을 분석하고 카피를 만들고 있어요...</div>
+            </div>
             <div id="aiProductAnalysisCard" class="ai-preview-card" style="display:none;">
               <div class="ap-block">
                 <div class="ap-label">HEADLINE</div>
@@ -2388,10 +2399,12 @@ ${state.infoText}
       return;
     }
     const btn = document.getElementById('aiProductAnalysisBtn');
+    const loadingEl = document.getElementById('aiAnalysisLoading');
     btn.disabled = true;
     statusEl.className='ai-status';
-    statusEl.textContent = 'AI가 제품을 분석하고 카피를 만들고 있어요...';
+    statusEl.textContent = '';
     card.style.display = 'none';
+    loadingEl.style.display = 'flex';
 
     try{
       const imageParts = state.productImages.map(p => ({ inline_data: { mime_type: p.mime, data: p.base64 } }));
@@ -2463,6 +2476,7 @@ details는 5개를 만들어줘. usp보다 구체적이고 풀어서 설명하�
         : '분석에 실패했어요 (' + err.message + '). 다시 시도해 주세요.';
     }finally{
       btn.disabled = false;
+      loadingEl.style.display = 'none';
       analysisPromise = null;
     }
   }
