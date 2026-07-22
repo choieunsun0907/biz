@@ -1,0 +1,2592 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SSAKA STUDIO — 제품 이미지 생성기</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Noto+Serif+KR:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --panel:#1C1C1F;
+    --panel-2:#26262B;
+    --panel-line:#35353B;
+    --stage:#F2F3F5;
+    --card:#FFFFFF;
+    --card-line:#E3E5E8;
+    --text:#1C1C1F;
+    --text-dim:#6B6E75;
+    --text-light:#F5F6F7;
+    --text-light-dim:#9A9DA5;
+    --accent:#2E6F95;
+    --accent-2:#1F4F6C;
+    --accent-warm:#E8A33D;
+    --danger:#D64545;
+    --success:#3FA76B;
+    --radius:14px;
+    --radius-sm:8px;
+    --font-ui:'Pretendard', -apple-system, sans-serif;
+    --font-data:'Space Grotesk', 'Pretendard', sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:var(--font-ui);
+    background:var(--stage);
+    color:var(--text);
+    -webkit-font-smoothing:antialiased;
+  }
+  button{font-family:inherit;cursor:pointer;}
+  input,textarea{font-family:inherit;}
+  :focus-visible{outline:2px solid var(--accent-warm);outline-offset:2px;}
+  @media (prefers-reduced-motion: reduce){
+    *{transition:none !important;animation:none !important;}
+  }
+
+  /* ---------- Header ---------- */
+  header{
+    background:var(--panel);
+    color:var(--text-light);
+    padding:14px 22px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    border-bottom:1px solid var(--panel-line);
+    position:sticky;top:0;z-index:20;
+  }
+  .brand{display:flex;align-items:center;gap:12px;}
+  .brand-text .title{font-weight:700;font-size:15px;letter-spacing:.02em;}
+  .brand-text .sub{font-size:11px;color:var(--text-light-dim);font-family:var(--font-data);letter-spacing:.06em;text-transform:uppercase;}
+  .aperture{display:block;}
+  .blade{transform-origin:50px 50px;fill:var(--accent-warm);transition:transform .55s cubic-bezier(.4,0,.2,1);}
+  header .settings-btn{
+    background:transparent;border:1px solid var(--panel-line);color:var(--text-light-dim);
+    width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    transition:border-color .2s, color .2s;
+  }
+  header .settings-btn:hover{border-color:var(--accent-warm);color:var(--accent-warm);}
+
+  /* ---------- Settings drawer ---------- */
+  #settingsDrawer{
+    background:var(--panel-2);color:var(--text-light);
+    border-bottom:1px solid var(--panel-line);
+    overflow:hidden;max-height:0;transition:max-height .3s ease;
+  }
+  #settingsDrawer.open{max-height:160px;}
+  #settingsDrawer .inner{padding:16px 22px;display:flex;flex-direction:column;gap:8px;max-width:520px;}
+  #settingsDrawer label{font-size:12px;color:var(--text-light-dim);}
+  #settingsDrawer input{
+    background:var(--panel);border:1px solid var(--panel-line);color:var(--text-light);
+    padding:9px 11px;border-radius:var(--radius-sm);font-size:13px;
+  }
+  #settingsDrawer .hint{font-size:11px;color:var(--text-light-dim);line-height:1.5;}
+
+  /* ---------- Layout ---------- */
+  .layout{display:flex;min-height:calc(100vh - 60px);}
+  nav.steps{
+    width:230px;flex-shrink:0;background:var(--panel);color:var(--text-light);
+    padding:26px 0;border-right:1px solid var(--panel-line);
+  }
+  .step-item{
+    display:flex;align-items:flex-start;gap:12px;padding:14px 20px;position:relative;
+    opacity:.45;cursor:default;
+  }
+  .step-item.unlocked{opacity:1;cursor:pointer;}
+  .step-item.active{background:var(--panel-2);}
+  .step-item .dot{
+    width:26px;height:26px;border-radius:50%;flex-shrink:0;
+    border:1.5px solid var(--panel-line);display:flex;align-items:center;justify-content:center;
+    font-family:var(--font-data);font-size:12px;font-weight:600;margin-top:1px;
+  }
+  .step-item.active .dot{border-color:var(--accent-warm);color:var(--accent-warm);}
+  .step-item.done .dot{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .step-item .label{font-size:13.5px;font-weight:600;}
+  .step-item .desc{font-size:11.5px;color:var(--text-light-dim);margin-top:2px;}
+
+  main.stage{flex:1;padding:36px 32px 60px;display:flex;justify-content:center;}
+  .stage-inner{width:100%;max-width:900px;}
+  .panel{display:none;}
+  .panel.active{display:block;animation:fade .35s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+  .panel h2{font-size:20px;margin:0 0 4px;}
+  .panel .lead{font-size:13.5px;color:var(--text-dim);margin:0 0 24px;}
+
+  /* ---------- Step 1: backgrounds ---------- */
+  .bg-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;}
+  .bg-card{
+    background:var(--card);border:2px solid transparent;border-radius:var(--radius);overflow:hidden;
+    cursor:pointer;transition:border-color .2s, transform .15s;
+  }
+  .bg-card:hover{transform:translateY(-2px);}
+  .bg-card.selected{border-color:var(--accent);}
+  .bg-card canvas{display:block;width:100%;height:auto;}
+  .bg-card .name{padding:9px 10px;font-size:12.5px;font-weight:600;display:flex;align-items:center;gap:6px;}
+  .bg-card .check{
+    width:16px;height:16px;border-radius:50%;border:1.5px solid var(--card-line);flex-shrink:0;
+  }
+  .bg-card.selected .check{background:var(--accent);border-color:var(--accent);position:relative;}
+  .bg-card.selected .check::after{content:'';position:absolute;left:4px;top:1px;width:4px;height:8px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg);}
+
+  .bg-card.upload-tile{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+    aspect-ratio:220/196;border:2px dashed var(--card-line);color:var(--text-dim);font-size:12px;font-weight:600;
+    text-align:center;padding:10px;
+  }
+  .bg-card.upload-tile:hover{border-color:var(--accent);color:var(--accent);}
+  .bg-thumb-img{
+    width:100%;aspect-ratio:220/160;background-size:cover;background-position:center;position:relative;
+  }
+  .bg-del{
+    position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;border:none;
+    background:rgba(0,0,0,.55);color:#fff;font-size:15px;line-height:1;display:flex;align-items:center;justify-content:center;
+    opacity:.8;transition:opacity .15s;
+  }
+  .bg-thumb-img:hover .bg-del{opacity:1;}
+
+  .logo-field{margin-top:24px;padding-top:20px;border-top:1px solid var(--card-line);}
+  .logo-field-label{font-size:12.5px;font-weight:600;color:var(--text-dim);margin-bottom:10px;}
+  .watermark-toggle{
+    display:flex;align-items:center;gap:8px;margin-top:14px;font-size:13px;font-weight:600;
+    color:var(--text);cursor:pointer;user-select:none;
+  }
+  .watermark-toggle input{width:16px;height:16px;accent-color:var(--accent);cursor:pointer;}
+  .gallery-item.logo-item{
+    background:
+      linear-gradient(45deg,#eee 25%,transparent 25%) -8px 0/16px 16px,
+      linear-gradient(-45deg,#eee 25%,transparent 25%) -8px 0/16px 16px,
+      linear-gradient(45deg,transparent 75%,#eee 75%) -8px 0/16px 16px,
+      linear-gradient(-45deg,transparent 75%,#eee 75%) -8px 0/16px 16px,
+      #fff;
+  }
+
+  /* ---------- Step 2: upload ---------- */
+  .dropzone{
+    border:2px dashed var(--card-line);border-radius:var(--radius);background:var(--card);
+    padding:44px 20px;text-align:center;cursor:pointer;transition:border-color .2s, background .2s;
+  }
+  .dropzone.drag{border-color:var(--accent);background:#EAF2F6;}
+  .dropzone svg{margin-bottom:10px;}
+  .dropzone .main-txt{font-size:14px;font-weight:600;}
+  .dropzone .sub-txt{font-size:12px;color:var(--text-dim);margin-top:4px;}
+  #fileInput{display:none;}
+
+  .gallery{display:flex;flex-wrap:wrap;gap:10px;}
+  .gallery-item{position:relative;width:110px;height:110px;border-radius:var(--radius-sm);overflow:hidden;
+    border:2px solid transparent;background:var(--card);cursor:pointer;}
+  .gallery-item img{width:100%;height:100%;object-fit:contain;display:block;}
+  .gallery-item.primary{border-color:var(--accent);}
+  .gallery-item .badge{
+    position:absolute;top:5px;left:5px;background:var(--accent);color:#fff;font-size:10px;font-weight:700;
+    padding:2px 7px;border-radius:999px;letter-spacing:.02em;font-family:var(--font-data);
+  }
+  .gallery-item .badge.num{background:var(--panel);}
+  .gallery-item .del{
+    position:absolute;top:5px;right:5px;width:20px;height:20px;border-radius:50%;border:none;
+    background:rgba(0,0,0,.55);color:#fff;font-size:13px;line-height:1;display:flex;align-items:center;justify-content:center;
+  }
+  .gallery-item .move-row{
+    position:absolute;bottom:4px;left:0;right:0;display:flex;justify-content:center;gap:4px;
+  }
+  .gallery-item .move-btn{
+    width:20px;height:20px;border-radius:50%;border:none;background:rgba(0,0,0,.55);color:#fff;
+    font-size:13px;line-height:1;display:flex;align-items:center;justify-content:center;
+  }
+  .gallery-item .move-btn:disabled{opacity:.25;}
+  .gallery-item .move-btn:not(:disabled):hover{background:rgba(0,0,0,.8);}
+  .gallery-item[draggable="true"]{cursor:grab;}
+  .gallery-item.dragging{opacity:.4;cursor:grabbing;}
+  .gallery-item.drag-over{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset;}
+  .gallery-item.add-tile{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+    border:2px dashed var(--card-line);color:var(--text-dim);font-size:11px;font-weight:600;text-align:center;
+  }
+  .gallery-item.add-tile:hover{border-color:var(--accent);color:var(--accent);}
+  .hint-line{font-size:11.5px;color:var(--text-dim);margin-top:10px;line-height:1.5;}
+  .id-fields{display:flex;gap:12px;margin-top:14px;flex-wrap:wrap;}
+  .id-fields .field{flex:1;min-width:200px;}
+  .upload-actions{display:flex;flex-direction:column;gap:10px;}
+
+  .ai-box{
+    background:var(--card);border:1px solid var(--card-line);border-radius:var(--radius-sm);padding:14px;font-size:13px;
+  }
+  .ai-box.loading{color:var(--text-dim);}
+  .ai-box.error{border-color:var(--danger);color:var(--danger);background:#FBEAEA;}
+  .ai-box.success{border-color:var(--success);}
+  .ai-result-row{display:flex;gap:8px;margin-top:6px;font-size:12.5px;}
+  .ai-result-row b{color:var(--text);}
+
+  /* ---------- Buttons ---------- */
+  .btn{
+    border:none;border-radius:999px;padding:11px 22px;font-size:13.5px;font-weight:600;
+    display:inline-flex;align-items:center;gap:7px;transition:opacity .2s, transform .1s;
+  }
+  .btn:active{transform:scale(.98);}
+  .btn:disabled{opacity:.4;cursor:not-allowed;}
+  .btn-primary{background:var(--accent);color:#fff;}
+  .btn-primary:hover:not(:disabled){background:var(--accent-2);}
+  .btn-ghost{background:transparent;color:var(--text-dim);border:1px solid var(--card-line);}
+  .btn-ghost:hover{border-color:var(--text-dim);}
+  .btn-warm{background:var(--accent-warm);color:#20180A;}
+  .btn-row{display:flex;gap:10px;margin-top:26px;}
+
+  /* ---------- Step 3: form + live preview ---------- */
+  .step3-ref{display:none;}
+  .gallery-item.readonly{cursor:default;}
+
+  .img-viewer-overlay{
+    position:fixed;inset:0;background:rgba(10,10,12,0.82);z-index:200;
+    display:none;align-items:center;justify-content:center;padding:32px;
+  }
+  .img-viewer-overlay.open{display:flex;}
+  .img-viewer-box{position:relative;max-width:92vw;max-height:92vh;}
+  .img-viewer-box img{max-width:92vw;max-height:92vh;display:block;border-radius:10px;box-shadow:0 24px 70px rgba(0,0,0,.5);}
+  .img-viewer-close{
+    position:absolute;top:-16px;right:-16px;width:34px;height:34px;border-radius:50%;
+    background:var(--panel);color:#fff;border:2px solid #fff;font-size:18px;line-height:1;
+    display:flex;align-items:center;justify-content:center;
+  }
+
+  .form-layout{display:flex;gap:28px;}
+  .form-col{flex:1;display:flex;flex-direction:column;gap:16px;}
+  .field label{display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;color:var(--text-dim);}
+  .field input{
+    width:100%;padding:10px 12px;border:1px solid var(--card-line);border-radius:var(--radius-sm);
+    font-size:14px;background:var(--card);
+  }
+  .field input:focus{border-color:var(--accent);}
+  .field textarea{
+    width:100%;padding:12px 14px;border:1px solid var(--card-line);border-radius:var(--radius-sm);
+    font-size:14px;background:var(--card);font-family:inherit;line-height:1.6;resize:vertical;min-height:170px;
+  }
+  .field textarea:focus{border-color:var(--accent);}
+  .field-hint{font-size:11.5px;color:var(--text-dim);margin-top:7px;line-height:1.5;}
+
+  .text-analysis-panel{background:var(--card);border:1px solid var(--card-line);border-radius:var(--radius-sm);padding:14px;}
+  .analysis-disclaimer{
+    font-size:11px;color:#8A6D1D;background:#FBF6E9;border:1px solid #F0E0B0;border-radius:8px;
+    padding:9px 11px;margin-bottom:12px;line-height:1.5;
+  }
+  .check-list{list-style:none;margin:0 0 12px;padding:0;display:flex;flex-direction:column;gap:7px;}
+  .check-list li{font-size:12.5px;display:flex;align-items:flex-start;gap:8px;line-height:1.5;color:var(--text);}
+  .check-list li.warn{color:var(--accent-2);}
+  .check-list li .icon{flex-shrink:0;}
+
+  .ai-preview-section{margin-bottom:22px;}
+  .ai-preview-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+  .ai-preview-title{font-size:13px;font-weight:700;color:var(--text);}
+  .ai-preview-title .optional-tag{font-weight:500;color:var(--text-dim);font-size:12px;}
+  .ai-preview-card{
+    background:var(--card);border:1px solid var(--card-line);border-radius:var(--radius);
+    padding:26px 28px;
+  }
+  .ap-block{margin-bottom:20px;}
+  .ap-block:last-of-type{margin-bottom:16px;}
+  .ap-label{
+    font-family:var(--font-data);font-size:11px;font-weight:700;color:var(--accent);
+    letter-spacing:.12em;margin-bottom:8px;
+  }
+  .ap-headline{font-size:24px;font-weight:700;color:var(--text);line-height:1.35;}
+  .ap-sub{font-size:14.5px;color:var(--text-dim);line-height:1.6;}
+  .ap-usp{display:flex;flex-wrap:wrap;gap:8px;}
+  .ap-usp .pill{
+    background:#EAF2F6;border:1px solid #CFE0EA;color:var(--accent-2);
+    font-size:12.5px;font-weight:600;padding:6px 14px;border-radius:999px;
+  }
+  .ap-desc{font-size:13.5px;color:var(--text);line-height:1.75;white-space:pre-wrap;}
+  .ap-details{display:flex;flex-direction:column;gap:12px;}
+  .ap-detail-item{border-left:2px solid var(--accent);padding-left:12px;}
+  .ap-detail-heading{font-size:14px;font-weight:700;color:var(--text);margin-bottom:3px;}
+  .ap-detail-body{font-size:12.5px;color:var(--text-dim);line-height:1.6;}
+  .ap-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;}
+  .ap-note{font-size:11px;color:var(--text-dim);margin-top:10px;line-height:1.5;}
+  .preview-col{width:340px;flex-shrink:0;}
+  .preview-card{
+    background:var(--card);border:1px solid var(--card-line);border-radius:var(--radius);
+    padding:10px;position:sticky;top:80px;
+  }
+  .preview-card canvas{width:100%;height:auto;border-radius:var(--radius-sm);display:block;}
+  .preview-card .cap{font-size:11px;color:var(--text-dim);margin-top:8px;text-align:center;}
+
+  /* ---------- Step 4: results ---------- */
+  .result-grid{display:flex;flex-direction:column;gap:28px;}
+  .result-card{background:var(--card);border:1px solid var(--card-line);border-radius:var(--radius);padding:16px;width:100%;}
+  .result-card.thumb-card{max-width:420px;}
+  .result-card h3{font-size:14px;margin:0 0 3px;}
+  .result-card .cap{font-size:12px;color:var(--text-dim);margin:0 0 12px;}
+  .result-card canvas{width:100%;height:auto;border-radius:var(--radius-sm);border:1px solid var(--card-line);display:block;}
+  .result-card > .btn{margin-top:12px;width:100%;justify-content:center;}
+  .ai-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+  .ai-row .btn{white-space:nowrap;flex:0 0 auto;}
+  .btn-sm{padding:6px 12px;font-size:12px;border-radius:8px;}
+  .seg.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .ai-badge{
+    background:var(--accent);color:#fff;font-size:12px;font-weight:700;
+    padding:8px 14px;border-radius:8px;display:inline-flex;align-items:center;
+  }
+  .icon-btn{padding:6px 10px;flex-shrink:0;}
+  .ai-status{font-size:11.5px;color:var(--text-dim);margin-top:6px;min-height:14px;}
+  .ai-status.error{color:var(--danger);}
+
+  .layout-style-picker{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0;}
+  .style-btn{
+    flex:1 1 auto;min-width:96px;border:1px solid var(--card-line);background:var(--card);
+    border-radius:var(--radius-sm);padding:10px 8px;display:flex;flex-direction:column;align-items:center;gap:2px;
+    cursor:pointer;transition:border-color .15s, background .15s;
+  }
+  .style-btn .style-letter{font-family:var(--font-data);font-weight:700;font-size:16px;color:var(--accent);}
+  .style-btn .style-name{font-size:11px;font-weight:600;color:var(--text-dim);white-space:nowrap;}
+  .style-btn:hover{border-color:var(--accent);}
+  .style-btn.active{border-color:var(--accent);background:#EAF2F6;}
+  .style-btn.active .style-name{color:var(--accent-2);}
+
+  .canvas-wrap{position:relative;}
+  .loading-overlay{
+    position:absolute;inset:0;background:#FFFFFF;border-radius:var(--radius-sm);
+    display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;
+  }
+  .loading-overlay.show{display:flex;}
+  .spinner{
+    width:36px;height:36px;border-radius:50%;
+    border:3px solid var(--card-line);border-top-color:var(--accent);
+    animation:spin 0.85s linear infinite;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .loading-text{font-size:12.5px;font-weight:600;color:var(--text);text-align:center;padding:0 16px;}
+  .spinner.small{width:18px;height:18px;border-width:2px;flex-shrink:0;}
+  .bg-gen-banner{
+    display:flex;align-items:center;gap:10px;background:#EAF2F6;border:1px solid #CFE0EA;
+    border-radius:var(--radius-sm);padding:11px 14px;margin-bottom:18px;font-size:12.5px;
+    color:var(--accent-2);line-height:1.5;
+  }
+
+  footer{
+    text-align:center;padding:20px;font-size:11px;color:var(--text-dim);
+    font-family:var(--font-data);letter-spacing:.04em;
+  }
+
+  @media (max-width: 860px){
+    .layout{flex-direction:column;}
+    nav.steps{width:100%;display:flex;overflow-x:auto;padding:14px 10px;gap:4px;}
+    .step-item{padding:8px 12px;flex-direction:column;align-items:center;text-align:center;gap:6px;min-width:110px;}
+    .step-item .desc{display:none;}
+    main.stage{padding:24px 16px 50px;}
+    .bg-grid{grid-template-columns:repeat(2,1fr);}
+    .gallery-item{width:88px;height:88px;}
+    .form-layout{flex-direction:column;}
+    .preview-col{width:100%;}
+    .preview-card{position:static;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <svg class="aperture" id="apertureIcon" viewBox="0 0 100 100" width="30" height="30">
+      <g id="blades">
+        <polygon class="blade" style="--base:0deg"   points="50,50 50,6 76,17"></polygon>
+        <polygon class="blade" style="--base:60deg"  points="50,50 50,6 76,17"></polygon>
+        <polygon class="blade" style="--base:120deg" points="50,50 50,6 76,17"></polygon>
+        <polygon class="blade" style="--base:180deg" points="50,50 50,6 76,17"></polygon>
+        <polygon class="blade" style="--base:240deg" points="50,50 50,6 76,17"></polygon>
+        <polygon class="blade" style="--base:300deg" points="50,50 50,6 76,17"></polygon>
+      </g>
+    </svg>
+    <div class="brand-text">
+      <div class="title">SSAKA STUDIO</div>
+      <div class="sub">Product Image Generator</div>
+    </div>
+  </div>
+  <button class="settings-btn" id="settingsToggle" title="설정" aria-label="설정">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+  </button>
+</header>
+
+<div id="settingsDrawer">
+  <div class="inner">
+    <label for="apiKeyInput">Gemini API Key</label>
+    <input id="apiKeyInput" type="password" placeholder="AIza...">
+    <div class="hint">AI 제품 분석·합성에 사용돼요. 브라우저에만 저장되며 외부로 전송되지 않아요. Google AI Studio에서 발급받은 키는 보통 'AIzaSy'로 시작해요.</div>
+  </div>
+</div>
+
+<div class="layout">
+  <nav class="steps">
+    <div class="step-item" data-step="1">
+      <div class="dot">1</div>
+      <div><div class="label">배경 선택</div><div class="desc">스튜디오 배경 5종 중 선택</div></div>
+    </div>
+    <div class="step-item" data-step="2">
+      <div class="dot">2</div>
+      <div><div class="label">제품 업로드 & 분석</div><div class="desc">사진 업로드 + AI 분석</div></div>
+    </div>
+    <div class="step-item" data-step="3">
+      <div class="dot">3</div>
+      <div><div class="label">결과 다운로드</div><div class="desc">썸네일 · 상세페이지</div></div>
+    </div>
+  </nav>
+
+  <main class="stage">
+    <div class="stage-inner">
+
+      <!-- STEP 1 -->
+      <section class="panel active" id="panel-1">
+        <h2>배경을 선택하세요</h2>
+        <p class="lead">스튜디오풍 배경 5종 중 선택하거나, 직접 촬영한 배경 사진을 레퍼런스로 등록해서 쓸 수 있어요.</p>
+        <div class="bg-grid" id="bgGrid"></div>
+        <input type="file" id="bgFileInput" accept="image/*" multiple style="display:none;">
+
+        <div class="logo-field">
+          <div class="logo-field-label">로고 (선택, 여러 개 등록 후 하나 선택)</div>
+          <div class="gallery" id="logoGrid"></div>
+          <input type="file" id="logoFileInput" accept="image/*" multiple style="display:none;">
+          <div class="hint-line">배경과는 별개예요. 여러 개 등록해두고 클릭해서 쓸 로고를 고르면, 썸네일 오른쪽 아래와 상세페이지 맨 아래 클로징에 작게 워터마크로 들어가요. 투명 배경 PNG를 추천해요.</div>
+          <label class="watermark-toggle">
+            <input type="checkbox" id="useWatermarkToggle" checked>
+            <span>결과물에 로고 워터마크 사용</span>
+          </label>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-primary" id="toStep2" disabled>다음 →</button>
+        </div>
+      </section>
+
+      <!-- STEP 2 -->
+      <section class="panel" id="panel-2">
+        <h2>제품 이미지를 업로드하고 분석하세요</h2>
+        <p class="lead">한 제품의 사진을 여러 장 올릴 수 있어요. <b>대표 이미지</b>는 상세페이지의 히어로 컷에 쓰이고, 나머지는 업로드한 순서대로 ②③④⑤... 섹션으로 상세페이지에 자동으로 이어져요. 제품명·코드를 입력하고 'AI 분석 미리보기'까지 이 화면에서 한 번에 끝낼 수 있어요.</p>
+
+        <div class="dropzone" id="dropzone">
+          <input type="file" id="fileInput" accept="image/*" multiple>
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#6B6E75" stroke-width="1.6"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <div class="main-txt">클릭하거나 이미지를 끌어다 놓으세요</div>
+          <div class="sub-txt">JPG, PNG 권장 · 여러 장 선택 가능 · 원하는 등장 순서대로 올려주세요</div>
+        </div>
+
+        <div id="uploadPreviewWrap" style="display:none;margin-top:18px;">
+          <div class="gallery" id="productGallery"></div>
+          <div class="hint-line">사진을 클릭하면 대표(히어로 컷)로 지정돼요. 나머지는 올린 순서 그대로 ②③④⑤ 섹션이 되고, 사진을 드래그하거나 아래 ‹ › 버튼으로 순서를 바꿀 수 있어요.</div>
+
+          <div class="id-fields">
+            <div class="field">
+              <label for="productNameHint">제품명 (선택)</label>
+              <input id="productNameHint" type="text" maxlength="40" placeholder="예) 옥클리 밸브 폴라라이즈드">
+            </div>
+            <div class="field">
+              <label for="productCodeHint">제품코드 (선택)</label>
+              <input id="productCodeHint" type="text" maxlength="40" placeholder="예) OO9264-05">
+            </div>
+          </div>
+          <div class="hint-line">제품명·코드를 입력해두면 아래 'AI 분석 미리보기'에서 사진 추측 대신 이 정보를 우선해서 분석하고, 필요하면 검색까지 활용해요.</div>
+          <div class="hint-line" style="color:var(--danger);font-weight:600;">⚠️ 제품명·코드는 입력 안 해도 되지만, 이걸 입력하지 않은 경우 아래 'AI 분석 미리보기'를 눌러야만 상세페이지에 텍스트가 들어가요. 텍스트를 직접 입력하는 화면은 따로 없어요.</div>
+
+          <div class="ai-preview-section" style="margin-top:22px;">
+            <div class="ai-preview-header">
+              <span class="ai-preview-title">AI 분석 미리보기 <span class="optional-tag">(선택)</span></span>
+              <button type="button" id="aiProductAnalysisBtn" class="btn btn-ghost btn-sm">🔍 AI 분석 미리보기</button>
+            </div>
+            <div id="autoGenHint" class="hint-line" style="margin-top:6px;"></div>
+            <div id="aiProductAnalysisStatus" class="ai-status"></div>
+            <div id="aiProductAnalysisCard" class="ai-preview-card" style="display:none;">
+              <div class="ap-block">
+                <div class="ap-label">HEADLINE</div>
+                <div class="ap-headline" id="apHeadline"></div>
+              </div>
+              <div class="ap-block">
+                <div class="ap-label">SUBHEADLINE</div>
+                <div class="ap-sub" id="apSub"></div>
+              </div>
+              <div class="ap-block">
+                <div class="ap-label">USP</div>
+                <div class="ap-usp" id="apUsp"></div>
+              </div>
+              <div class="ap-block">
+                <div class="ap-label">DESCRIPTION</div>
+                <div class="ap-desc" id="apDesc"></div>
+              </div>
+              <div class="ap-block">
+                <div class="ap-label">DETAILS</div>
+                <div class="ap-details" id="apDetails"></div>
+              </div>
+              <div class="ap-actions">
+                <button type="button" id="apApplyBtn" class="btn btn-primary btn-sm">이 내용으로 다시 적용</button>
+                <button type="button" id="apCopyDescBtn" class="btn btn-ghost btn-sm">설명 문단 복사</button>
+              </div>
+              <div class="ap-note">헤드라인·USP·설명·상세설명이 분석 완료와 동시에 상세페이지 기본 콘텐츠로 자동 반영돼요. DETAILS는 추가사진 옆 설명과 사진 없는 특징 카드로 나뉘어 상세페이지에 들어가요. 마음에 안 들면 위 버튼으로 이 AI 버전으로 다시 되돌릴 수 있어요.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-layout" style="display:none;">
+          <div class="form-col">
+            <div class="field">
+              <label for="infoText">이미지에 들어갈 텍스트</label>
+              <textarea id="infoText" rows="8"></textarea>
+              <div class="field-hint"></div>
+            </div>
+            <div class="field">
+              <div class="text-analysis-panel">
+                <ul class="check-list" id="checkList"></ul>
+                <button class="btn btn-ghost btn-sm" id="aiTextPolishBtn" type="button">AI로 문구 분석 & 개선 제안</button>
+                <div id="aiTextPolishResult" class="ai-box" style="display:none;"></div>
+              </div>
+            </div>
+          </div>
+          <div class="preview-col">
+            <div class="preview-card">
+              <canvas id="liveCanvas" width="1000" height="560"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-ghost" id="backTo1">← 이전</button>
+          <button class="btn btn-primary" id="toStep3" disabled>다음 →</button>
+        </div>
+      </section>
+
+      <!-- STEP 3 -->
+      <section class="panel" id="panel-3">
+        <h2>완성됐어요</h2>
+        <p class="lead">아래 <b>"이미지 생성하기"</b> 버튼을 누르면 썸네일과 상세페이지를 AI로 한 번에 자연스럽게 합성해요. 추가 사진이 있으면 1단계 배경 대신 AI가 사진마다 어울리는 컨셉을 직접 정해요 (사진이 많을수록 시간이 더 걸려요). 썸네일은 항상 1단계 배경과 합성돼요.</p>
+
+        <div class="result-grid">
+          <div class="result-card thumb-card">
+            <h3>썸네일</h3>
+            <p class="cap">1000 × 1000 · 텍스트 없이 대표 이미지만 깔끔하게 · 목록용</p>
+            <div class="ai-row">
+              <span class="ai-badge">✨ AI 합성</span>
+              <button class="btn btn-ghost btn-sm icon-btn" id="thumbRegen" title="AI 합성 다시 생성">↻ 다시 생성</button>
+            </div>
+            <div class="ai-status" id="aiStatusThumb"></div>
+            <div class="canvas-wrap" id="thumbCanvasWrap" style="margin-top:12px;">
+              <canvas id="thumbCanvas" width="1000" height="1000"></canvas>
+              <div class="loading-overlay" id="thumbLoadingOverlay">
+                <div class="spinner"></div>
+                <div class="loading-text" id="thumbLoadingText">AI가 합성하고 있어요...</div>
+              </div>
+            </div>
+            <button type="button" class="btn btn-warm gen-images-btn" style="width:100%;margin-top:14px;">🖼️ 이미지 생성하기 (AI 합성)</button>
+            <button class="btn btn-primary" id="downloadThumb">다운로드</button>
+          </div>
+          <div class="result-card">
+            <h3>상세페이지</h3>
+            <p class="cap" id="detailLayoutCap">1000 × 가변 높이 · 히어로 컷 → 타이틀 → 특징 → 설명 문단 → 추가 사진 순서대로(②③④⑤) → 클로징</p>
+
+            <div class="layout-style-picker" id="layoutStylePicker">
+              <button type="button" class="style-btn active" data-style="A">
+                <span class="style-letter">A</span><span class="style-name">매거진형</span>
+              </button>
+              <button type="button" class="style-btn" data-style="B">
+                <span class="style-letter">B</span><span class="style-name">카드형</span>
+              </button>
+              <button type="button" class="style-btn" data-style="C">
+                <span class="style-letter">C</span><span class="style-name">스퀘어그리드형</span>
+              </button>
+              <button type="button" class="style-btn" data-style="D">
+                <span class="style-letter">D</span><span class="style-name">임팩트형</span>
+              </button>
+            </div>
+
+            <div class="ai-row">
+              <span class="ai-badge">✨ AI 합성 (전체)</span>
+              <button class="btn btn-ghost btn-sm icon-btn" id="detailRegen" title="전체 다시 생성">↻ 다시 생성</button>
+            </div>
+            <div class="ai-status" id="aiStatusDetail"></div>
+            <button class="btn btn-ghost" id="downloadMainTop" style="width:100%;margin-top:10px;">⬇ 다운로드</button>
+            <div class="canvas-wrap" id="detailCanvasWrap" style="margin-top:12px;">
+              <canvas id="detailCanvas" width="1000" height="1250"></canvas>
+              <div class="loading-overlay" id="detailLoadingOverlay">
+                <div class="spinner"></div>
+                <div class="loading-text" id="detailLoadingText">AI가 합성하고 있어요...</div>
+              </div>
+            </div>
+            <p class="cap" id="detailSectionNote" style="margin:6px 0 0;"></p>
+            <button type="button" class="btn btn-warm gen-images-btn" style="width:100%;margin-top:14px;">🖼️ 이미지 생성하기 (AI 합성)</button>
+            <button class="btn btn-primary" id="downloadMain">다운로드</button>
+
+            <div class="btn-row">
+              <button class="btn btn-ghost" id="backTo3">← 이미지·정보 수정</button>
+              <button class="btn btn-ghost" id="resetAll">새로 만들기</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<footer>© 2026 SSAKA STUDIO — Product Image Generator</footer>
+
+<div id="imgViewerOverlay" class="img-viewer-overlay">
+  <div class="img-viewer-box">
+    <button id="imgViewerClose" class="img-viewer-close" aria-label="닫기">×</button>
+    <img id="imgViewerImg" alt="미리보기 확대">
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ==================== Presets ====================
+  const PRESETS = [
+    { id:'white',    name:'퓨어 화이트', bgTop:'#FDFDFC', bgBottom:'#E3E3E1', spot:'#FFFFFF' },
+    { id:'beige',    name:'웜 베이지',   bgTop:'#F6F0E6', bgBottom:'#DFCFB2', spot:'#FBF6EC' },
+    { id:'gray',     name:'쿨 그레이',   bgTop:'#EEF0F2', bgBottom:'#C9CFD5', spot:'#F7F8F9' },
+    { id:'blue',     name:'소프트 블루', bgTop:'#EAF1F6', bgBottom:'#C3D7E3', spot:'#F5FAFC' },
+    { id:'charcoal', name:'차콜 다크',   bgTop:'#3D4046', bgBottom:'#1B1D21', spot:'#585C63' }
+  ];
+
+  // ==================== Global state (single product, multi reference photos) ====================
+  const state = {
+    step: 1,
+    maxUnlocked: 1,
+    presetId: null,
+    productImages: [],   // [{id,img,dataUrl,base64,mime}] reference photos, in upload order
+    primaryId: null,     // used as the hero cut
+    productImage: null,
+    productBase64: null,
+    productMime: 'image/jpeg',
+    infoText: '',
+    productDescription: '',  // long-form copy from AI 분석 미리보기, rendered as its own block in the detail page
+    productDetails: [],      // [{heading, body}] richer per-feature detail call-outs, paired with extra photos / leftover cards
+    useWatermark: true,
+    layoutStyle: 'A'      // 'A' magazine, 'B' card grid, 'C' square grid, 'D' impact/poster
+  };
+
+  const GEMINI_TEXT_MODEL = 'gemini-3.5-flash';
+  const GEMINI_IMAGE_MODEL = 'gemini-3.1-flash-image'; // Nano Banana 2 — supports thinkingConfig for deeper reasoning on composition
+  const HERO_DIM = { w:1000, h:1250 };
+  const SQUARE_DIM = { w:1000, h:1000 };
+
+  // Thumbnail card (independent, always just shows the primary image)
+  const aiCache = { thumb: null };
+  const viewState = { thumb: 'canvas' };
+
+  // Detail page (whole-page AI mode) — one cache entry per section id ('hero' or an image id)
+  const aiSectionCache = {};
+  let detailViewMode = 'canvas'; // 'canvas' | 'ai'
+
+  function resetAiComposites(){
+    aiCache.thumb = null;
+    viewState.thumb = 'canvas';
+    Object.keys(aiSectionCache).forEach(k=> delete aiSectionCache[k]);
+    detailViewMode = 'canvas';
+    const t = document.getElementById('aiStatusThumb'); if(t){ t.textContent=''; t.className='ai-status'; }
+    const d = document.getElementById('aiStatusDetail'); if(d){ d.textContent=''; d.className='ai-status'; }
+  }
+
+  // ==================== Helpers ====================
+  function hexToRgba(hex, a){
+    const h = hex.replace('#','');
+    const r = parseInt(h.substring(0,2),16), g = parseInt(h.substring(2,4),16), b = parseInt(h.substring(4,6),16);
+    return `rgba(${r},${g},${b},${a})`;
+  }
+  function getPreset(id){ return PRESETS.find(p=>p.id===id) || null; }
+  function isCustomBg(id){ return !!id && id.indexOf('custom_')===0; }
+
+  async function ensureFonts(){
+    try{
+      await Promise.all([
+        document.fonts.load('700 40px Pretendard'),
+        document.fonts.load('600 24px Pretendard'),
+        document.fonts.load('500 18px Pretendard'),
+        document.fonts.load('600 14px "Space Grotesk"'),
+        document.fonts.load('700 46px "Noto Serif KR"'),
+        document.fonts.load('700 20px "Space Grotesk"'),
+        document.fonts.load('600 13px "Space Grotesk"')
+      ]);
+    }catch(e){ /* fonts best-effort */ }
+  }
+
+  // ==================== Custom background references ====================
+  const CUSTOM_BG_KEY = 'ssaka_studio_custom_bgs';
+  let customBgs = [];
+  const customImgCache = {};
+
+  function loadCustomBgs(){
+    try{ return JSON.parse(localStorage.getItem(CUSTOM_BG_KEY) || '[]'); }
+    catch(e){ return []; }
+  }
+  function saveCustomBgs(){
+    try{ localStorage.setItem(CUSTOM_BG_KEY, JSON.stringify(customBgs)); }
+    catch(e){ alert('배경 저장 공간이 부족해요. 사용하지 않는 레퍼런스를 삭제해 주세요.'); }
+  }
+  function resizeImageForStorage(file){
+    return new Promise((resolve,reject)=>{
+      const reader = new FileReader();
+      reader.onload = ()=>{
+        const img = new Image();
+        img.onload = ()=>{
+          const maxDim = 1400;
+          const scale = Math.min(1, maxDim/Math.max(img.width,img.height));
+          const c = document.createElement('canvas');
+          c.width = Math.round(img.width*scale);
+          c.height = Math.round(img.height*scale);
+          c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+          resolve(c.toDataURL('image/jpeg', 0.86));
+        };
+        img.onerror = reject;
+        img.src = reader.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+  function preloadCustomImage(bg){
+    return new Promise(resolve=>{
+      const img = new Image();
+      img.onload = ()=>{ customImgCache[bg.id] = img; resolve(img); };
+      img.src = bg.dataUrl;
+    });
+  }
+  function deleteCustomBg(id){
+    customBgs = customBgs.filter(b=>b.id!==id);
+    delete customImgCache[id];
+    saveCustomBgs();
+    const card = document.querySelector(`.bg-card[data-id="${id}"]`);
+    if(card) card.remove();
+    if(state.presetId===id){
+      state.presetId = null;
+      document.getElementById('toStep2').disabled = true;
+    }
+  }
+  function renameCustomBg(id){
+    const bg = customBgs.find(b=>b.id===id);
+    if(!bg) return;
+    const next = prompt('배경 이름을 입력하세요', bg.name);
+    if(next===null) return;
+    bg.name = next.trim().slice(0,20) || bg.name;
+    saveCustomBgs();
+    const label = document.querySelector(`.bg-card[data-id="${id}"] .name span:last-child`);
+    if(label) label.textContent = bg.name;
+  }
+
+  // ==================== Background drawing ====================
+  function applyVignette(ctx, w, h, opacity){
+    const vg = ctx.createRadialGradient(w/2,h/2,h*0.35,w/2,h/2,w*0.8);
+    vg.addColorStop(0,'rgba(0,0,0,0)');
+    vg.addColorStop(1,`rgba(0,0,0,${opacity})`);
+    ctx.fillStyle = vg;
+    ctx.fillRect(0,0,w,h);
+  }
+  function drawStudioBackground(ctx, w, h, preset){
+    let grad = ctx.createLinearGradient(0,0,0,h);
+    grad.addColorStop(0, preset.bgTop);
+    grad.addColorStop(0.62, preset.bgTop);
+    grad.addColorStop(0.64, preset.bgBottom);
+    grad.addColorStop(1, preset.bgBottom);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0,0,w,h);
+
+    const cx = w*0.5, cy = h*0.4;
+    const rg = ctx.createRadialGradient(cx,cy,0,cx,cy,w*0.55);
+    rg.addColorStop(0, hexToRgba(preset.spot,0.55));
+    rg.addColorStop(1, hexToRgba(preset.spot,0));
+    ctx.fillStyle = rg;
+    ctx.fillRect(0,0,w,h);
+
+    applyVignette(ctx, w, h, 0.14);
+  }
+  function drawImageBackground(ctx, w, h, img){
+    // Blurred cover-fit backdrop so the frame is fully filled with no hard bars,
+    // then the sharp image is drawn fully contained (100% of the original, no cropping).
+    ctx.save();
+    try{ ctx.filter = 'blur(28px)'; }catch(e){ /* unsupported: falls back to no blur */ }
+    const coverScale = Math.max(w/img.width, h/img.height) * 1.15;
+    const cw = img.width*coverScale, ch = img.height*coverScale;
+    ctx.drawImage(img, (w-cw)/2, (h-ch)/2, cw, ch);
+    ctx.filter = 'none';
+    ctx.restore();
+
+    const containScale = Math.min(w/img.width, h/img.height);
+    const iw = img.width*containScale, ih = img.height*containScale;
+    ctx.drawImage(img, (w-iw)/2, (h-ih)/2, iw, ih);
+
+    applyVignette(ctx, w, h, 0.16);
+  }
+  function drawBackground(ctx, w, h){
+    if(isCustomBg(state.presetId)){
+      const img = customImgCache[state.presetId];
+      if(img){ drawImageBackground(ctx, w, h, img); return; }
+      ctx.fillStyle = '#E9EAEC';
+      ctx.fillRect(0,0,w,h);
+      return;
+    }
+    drawStudioBackground(ctx, w, h, getPreset(state.presetId) || PRESETS[0]);
+  }
+  function renderBackgroundOnlyCanvas(w, h){
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    drawBackground(c.getContext('2d'), w, h);
+    return c;
+  }
+
+  function drawContactShadow(ctx, cx, floorY, radiusX){
+    ctx.save();
+    ctx.translate(cx, floorY);
+    ctx.scale(1, 0.26);
+    const sg = ctx.createRadialGradient(0,0,0,0,0,radiusX);
+    sg.addColorStop(0,'rgba(0,0,0,0.34)');
+    sg.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle = sg;
+    ctx.beginPath();
+    ctx.ellipse(0,0,radiusX,radiusX,0,0,Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  }
+  function drawPlaceholderProduct(ctx,w,h){
+    const boxW = w*0.28, boxH = h*0.4;
+    const dx = (w-boxW)/2, dy = h*0.3;
+    drawContactShadow(ctx, w/2, dy+boxH, boxW*0.6);
+    ctx.fillStyle = 'rgba(120,120,120,0.28)';
+    ctx.beginPath();
+    const r = 10;
+    ctx.moveTo(dx+r,dy);
+    ctx.arcTo(dx+boxW,dy,dx+boxW,dy+boxH,r);
+    ctx.arcTo(dx+boxW,dy+boxH,dx,dy+boxH,r);
+    ctx.arcTo(dx,dy+boxH,dx,dy,r);
+    ctx.arcTo(dx,dy,dx+boxW,dy,r);
+    ctx.closePath();
+    ctx.fill();
+  }
+  function drawProductCentered(ctx, img, w, h){
+    // product centered on both axes, sized proportionally to the frame — used everywhere
+    // a product photo gets Canvas-composited onto a background (hero, extra sections, thumbnail)
+    const maxW = w*0.64, maxH = h*0.64;
+    const scale = Math.min(maxW/img.width, maxH/img.height);
+    const dw = img.width*scale, dh = img.height*scale;
+    const dx = (w-dw)/2, dy = (h-dh)/2;
+    const floorY = dy+dh-dh*0.04;
+    drawContactShadow(ctx, w/2, floorY, dw*0.5);
+    ctx.drawImage(img,dx,dy,dw,dh);
+  }
+  function drawImageCover(ctx, img, w, h){
+    const scale = Math.max(w/img.width, h/img.height);
+    const dw = img.width*scale, dh = img.height*scale;
+    ctx.drawImage(img, (w-dw)/2, (h-dh)/2, dw, dh);
+  }
+
+  // ==================== Detail page: section model ====================
+  // Builds the ordered list of image sections for the detail page:
+  // hero (primary) + one section per additional uploaded photo, in upload order.
+  function buildSectionList(){
+    const primaryEntry = state.productImages.find(p=>p.id===state.primaryId) || null;
+    const extras = state.productImages.filter(p=>p.id!==state.primaryId);
+    const list = [];
+    if(primaryEntry) list.push({ id:'hero', entry:primaryEntry, dim:HERO_DIM, h:1250, kind:'hero', label:null });
+    if(extras.length>0){
+      extras.forEach((e,idx)=> list.push({ id:e.id, entry:e, dim:SQUARE_DIM, h:1000, kind:'extra', label:`상세이미지${idx+1}` }));
+    } else if(primaryEntry){
+      list.push({ id:'secondary', entry:primaryEntry, dim:SQUARE_DIM, h:1000, kind:'fallback', label:null });
+    }
+    return list;
+  }
+
+  function drawImageSection(ctx, x, y, w, h, section, showLabels){
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.beginPath(); ctx.rect(0,0,w,h); ctx.clip();
+    const cached = aiSectionCache[section.id];
+    if(detailViewMode==='ai' && cached){
+      drawImageCover(ctx, cached, w, h);
+    } else {
+      drawBackground(ctx, w, h);
+      const imgObj = section.entry && section.entry.img;
+      if(imgObj){ drawProductCentered(ctx, imgObj, w, h); }
+      else { drawPlaceholderProduct(ctx, w, h); }
+    }
+    ctx.restore();
+    if(showLabels!==false && section.label){
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.font='700 18px "Pretendard", sans-serif';
+      const padX = 16, chipH = 38, chipX = 24, chipY = 24;
+      const textW = ctx.measureText(section.label).width;
+      const chipW = textW + padX*2;
+      const r = 999;
+      ctx.beginPath();
+      ctx.moveTo(chipX+r, chipY);
+      ctx.arcTo(chipX+chipW, chipY, chipX+chipW, chipY+chipH, chipH/2);
+      ctx.arcTo(chipX+chipW, chipY+chipH, chipX, chipY+chipH, chipH/2);
+      ctx.arcTo(chipX, chipY+chipH, chipX, chipY, chipH/2);
+      ctx.arcTo(chipX, chipY, chipX+chipW, chipY, chipH/2);
+      ctx.closePath();
+      ctx.fillStyle='rgba(28,28,31,0.72)';
+      ctx.fill();
+      ctx.fillStyle='#fff';
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(section.label, chipX+chipW/2, chipY+chipH/2+1);
+      ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+      ctx.restore();
+    }
+  }
+
+  // ==================== Logo watermark (multiple registered, one selected) ====================
+  const LOGOS_KEY = 'ssaka_studio_logos';
+  const LEGACY_LOGO_KEY = 'ssaka_studio_logo'; // single-logo format from an earlier version
+  let logos = [];          // [{id, dataUrl}]
+  let activeLogoId = null;
+  let logoImg = null;
+
+  function loadLogos(){
+    try{
+      const stored = JSON.parse(localStorage.getItem(LOGOS_KEY) || 'null');
+      if(stored) return stored;
+    }catch(e){ /* fall through to migration */ }
+    // migrate a logo saved by the earlier single-logo version, if any
+    try{
+      const legacy = localStorage.getItem(LEGACY_LOGO_KEY);
+      if(legacy){
+        localStorage.removeItem(LEGACY_LOGO_KEY);
+        const migrated = [{ id:'logo_legacy', dataUrl: legacy }];
+        localStorage.setItem(LOGOS_KEY, JSON.stringify(migrated));
+        return migrated;
+      }
+    }catch(e){ /* ignore */ }
+    return [];
+  }
+  function saveLogos(){
+    try{ localStorage.setItem(LOGOS_KEY, JSON.stringify(logos)); }
+    catch(e){ alert('로고 저장 공간이 부족해요. 사용하지 않는 로고를 삭제해 주세요.'); }
+  }
+  function resizeLogoForStorage(file){
+    return new Promise((resolve,reject)=>{
+      const reader = new FileReader();
+      reader.onload = ()=>{
+        const img = new Image();
+        img.onload = ()=>{
+          const maxDim = 480;
+          const scale = Math.min(1, maxDim/Math.max(img.width,img.height));
+          const c = document.createElement('canvas');
+          c.width = Math.round(img.width*scale);
+          c.height = Math.round(img.height*scale);
+          c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+          resolve(c.toDataURL('image/png')); // PNG to preserve transparency
+        };
+        img.onerror = reject;
+        img.src = reader.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+  function preloadLogo(dataUrl){
+    return new Promise(resolve=>{
+      if(!dataUrl){ logoImg = null; resolve(null); return; }
+      const img = new Image();
+      img.onload = ()=>{ logoImg = img; resolve(img); };
+      img.onerror = ()=>{ logoImg = null; resolve(null); };
+      img.src = dataUrl;
+    });
+  }
+
+  function drawLogoMark(ctx, w, h){
+    if(!logoImg || !state.useWatermark) return;
+    const maxW = w*0.16, maxH = h*0.08;
+    const scale = Math.min(maxW/logoImg.width, maxH/logoImg.height, 1);
+    const lw = logoImg.width*scale, lh = logoImg.height*scale;
+    const pad = Math.max(10, w*0.018);
+    const chipPad = 8;
+    const bw = lw+chipPad*2, bh = lh+chipPad*2;
+    const bx = w-bw-pad, by = h-bh-pad;
+    ctx.save();
+    ctx.fillStyle='rgba(255,255,255,0.85)';
+    const r=10;
+    ctx.beginPath();
+    ctx.moveTo(bx+r,by);
+    ctx.arcTo(bx+bw,by,bx+bw,by+bh,r);
+    ctx.arcTo(bx+bw,by+bh,bx,by+bh,r);
+    ctx.arcTo(bx,by+bh,bx,by,r);
+    ctx.arcTo(bx,by,bx+bw,by,r);
+    ctx.closePath();
+    ctx.fill();
+    ctx.drawImage(logoImg, bx+chipPad, by+chipPad, lw, lh);
+    ctx.restore();
+  }
+
+  // ==================== Thumbnail card (independent, primary image only) ====================
+  function renderThumbCanvas(){
+    const canvas = document.getElementById('thumbCanvas');
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0,0,w,h);
+    if(viewState.thumb==='ai' && aiCache.thumb){
+      drawImageCover(ctx, aiCache.thumb, w, h);
+    } else {
+      drawBackground(ctx, w, h);
+      if(state.productImage){ drawProductCentered(ctx, state.productImage, w, h); }
+      else { drawPlaceholderProduct(ctx, w, h); }
+    }
+    drawLogoMark(ctx, w, h);
+  }
+
+  // ==================== Detail page text sections ====================
+  const PRICE_RE = /(₩|원)/;
+
+  function parseInfoText(){
+    const rawLines = (state.infoText||'').split('\n').map(l=>l.trim()).filter(Boolean);
+    const title = rawLines[0] || '제목을 입력하세요';
+    const rest = rawLines.slice(1);
+    const priceIdx = rest.findIndex(l => PRICE_RE.test(l));
+    const priceLine = priceIdx >= 0 ? rest.splice(priceIdx,1)[0] : null;
+    return { title, rest, priceLine };
+  }
+  function getCurrentProductName(){
+    const { title } = parseInfoText();
+    return (title && title!=='제목을 입력하세요') ? title : '';
+  }
+  function setLetterSpacing(ctx, val){
+    try{ ctx.letterSpacing = val; }catch(e){ /* unsupported, ignore */ }
+  }
+
+  // ---- Description paragraph block (wraps state.productDescription onto the detail page) ----
+  function wrapTextLines(ctx, text, maxWidth){
+    const chars = Array.from(text);
+    const lines = []; let line = '';
+    chars.forEach(ch=>{
+      const test = line + ch;
+      if(ctx.measureText(test).width > maxWidth && line){ lines.push(line); line = ch; }
+      else line = test;
+    });
+    if(line) lines.push(line);
+    return lines;
+  }
+  function layoutDescriptionParagraphs(text, maxWidth, fontSpec){
+    const scratch = document.createElement('canvas');
+    const mctx = scratch.getContext('2d');
+    mctx.font = fontSpec;
+    const paragraphs = (text||'').split(/\n\s*\n/).map(p=>p.trim()).filter(Boolean);
+    const rows = []; // {text, paraStart}
+    paragraphs.forEach((p,pi)=>{
+      const lines = wrapTextLines(mctx, p, maxWidth);
+      lines.forEach((l,li)=> rows.push({ text:l, paraStart: li===0 && pi>0 }));
+    });
+    return rows;
+  }
+  function descriptionBlockHeight(text, w, padX){
+    if(!text) return 0;
+    const maxWidth = w - padX*2;
+    const fontSpec = '400 20px Pretendard, sans-serif';
+    const rows = layoutDescriptionParagraphs(text, maxWidth, fontSpec);
+    const lineH = 34, paraGap = 14, topPad = 44, bottomPad = 44, labelH = 30;
+    const extraGaps = rows.filter(r=>r.paraStart).length * paraGap;
+    return topPad + labelH + rows.length*lineH + extraGaps + bottomPad;
+  }
+  function drawDescriptionBlock(ctx, y, w, h, text, opts){
+    if(!text) return;
+    const o = Object.assign({ bg:'#FFFFFF', text:'#1C1C1F', label:'#2E6F95', padX: w*0.14 }, opts||{});
+    ctx.save();
+    ctx.translate(0, y);
+    ctx.fillStyle = o.bg;
+    ctx.fillRect(0,0,w,h);
+
+    const maxWidth = w - o.padX*2;
+    ctx.font = '700 12px "Space Grotesk", sans-serif';
+    ctx.fillStyle = o.label;
+    setLetterSpacing(ctx,'3px');
+    ctx.fillText('DESCRIPTION', o.padX, 42);
+    setLetterSpacing(ctx,'0px');
+
+    const fontSpec = '400 20px Pretendard, sans-serif';
+    ctx.font = fontSpec;
+    ctx.fillStyle = o.text;
+    const rows = layoutDescriptionParagraphs(text, maxWidth, fontSpec);
+    const lineH = 34, paraGap = 14;
+    let ry = 88;
+    rows.forEach(r=>{
+      if(r.paraStart) ry += paraGap;
+      ctx.fillText(r.text, o.padX, ry);
+      ry += lineH;
+    });
+    ctx.restore();
+  }
+
+  function drawTitleBand(ctx, y, w, h, title, priceLine){
+    ctx.save();
+    ctx.translate(0, y);
+    ctx.fillStyle = '#FAFAF9';
+    ctx.fillRect(0,0,w,h);
+    ctx.strokeStyle = '#E3E5E8';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0,0.5); ctx.lineTo(w,0.5); ctx.stroke();
+
+    ctx.textAlign = 'center';
+    ctx.font = '600 13px "Space Grotesk", sans-serif';
+    ctx.fillStyle = '#2E6F95';
+    setLetterSpacing(ctx, '3px');
+    ctx.fillText('PRODUCT STORY', w/2, h*0.26);
+    setLetterSpacing(ctx, '0px');
+
+    ctx.font = '700 46px "Noto Serif KR", serif';
+    ctx.fillStyle = '#1C1C1F';
+    ctx.fillText(title, w/2, h*0.56, w*0.86);
+
+    if(priceLine){
+      ctx.font = '600 24px "Space Grotesk", Pretendard, sans-serif';
+      ctx.fillStyle = '#2E6F95';
+      ctx.fillText(priceLine, w/2, h*0.82);
+    }
+    ctx.textAlign = 'left';
+    ctx.restore();
+  }
+  function drawFeatureStrip(ctx, y, w, h, rest){
+    ctx.save();
+    ctx.translate(0, y);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0,0,w,h);
+
+    const items = rest.length ? rest : ['AI 분석 미리보기로 특징을 채우면 여기에 표시돼요'];
+    const colX = w*0.14, colW = w*0.72;
+    const rowH = h / items.length;
+
+    items.forEach((txt,i)=>{
+      const ry = i*rowH;
+      if(i>0){
+        ctx.strokeStyle = '#EDEEEF';
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(colX, ry+0.5); ctx.lineTo(colX+colW, ry+0.5); ctx.stroke();
+      }
+      ctx.font = '600 15px "Space Grotesk", sans-serif';
+      ctx.fillStyle = '#2E6F95';
+      ctx.fillText(String(i+1).padStart(2,'0'), colX, ry+rowH*0.42);
+
+      ctx.font = '500 26px Pretendard, sans-serif';
+      ctx.fillStyle = '#1C1C1F';
+      ctx.fillText(txt, colX+56, ry+rowH*0.42, colW-56);
+    });
+    ctx.restore();
+  }
+  function drawFooter(ctx, y, w, h, priceLine){
+    ctx.save();
+    ctx.translate(0, y);
+    ctx.fillStyle = '#1C1C1F';
+    ctx.fillRect(0,0,w,h);
+    ctx.textAlign = 'center';
+    if(priceLine){
+      ctx.font = '600 30px "Space Grotesk", sans-serif';
+      ctx.fillStyle = '#E8A33D';
+      ctx.fillText(priceLine, w/2, h*0.45);
+    }
+    if(logoImg && state.useWatermark){
+      const maxW = w*0.22, maxH = h*0.28;
+      const scale = Math.min(maxW/logoImg.width, maxH/logoImg.height, 1);
+      const lw = logoImg.width*scale, lh = logoImg.height*scale;
+      ctx.drawImage(logoImg, w/2-lw/2, h*0.62-lh/2, lw, lh);
+    } else {
+      ctx.font = '600 12px "Space Grotesk", sans-serif';
+      ctx.fillStyle = '#9A9DA5';
+      setLetterSpacing(ctx, '3px');
+      ctx.fillText('SSAKA STUDIO', w/2, h*0.76);
+      setLetterSpacing(ctx, '0px');
+    }
+    ctx.textAlign = 'left';
+    ctx.restore();
+  }
+
+  function roundedRectPath(ctx,x,y,w,h,r){
+    ctx.beginPath();
+    ctx.moveTo(x+r,y);
+    ctx.arcTo(x+w,y,x+w,y+h,r);
+    ctx.arcTo(x+w,y+h,x,y+h,r);
+    ctx.arcTo(x,y+h,x,y,r);
+    ctx.arcTo(x,y,x+w,y,r);
+    ctx.closePath();
+  }
+  function drawCardWithImage(ctx, x, y, w, h, section, radius){
+    ctx.save();
+    ctx.shadowColor='rgba(28,28,31,0.14)';
+    ctx.shadowBlur=20;
+    ctx.shadowOffsetY=8;
+    ctx.fillStyle='#fff';
+    roundedRectPath(ctx,x,y,w,h,radius);
+    ctx.fill();
+    ctx.restore();
+    ctx.save();
+    roundedRectPath(ctx,x,y,w,h,radius);
+    ctx.clip();
+    drawImageSection(ctx, x, y, w, h, section, false);
+    ctx.restore();
+  }
+
+  // ==================== Layout A — 매거진형 ====================
+  // ---- Extra-photo section concepts (cycled 0→1→2→3→0... across ②③④⑤ sections in Layout A) ----
+  function extraConceptDetail(index){
+    const details = state.productDetails;
+    if(details && details.length){
+      const d = details[index % details.length];
+      return { heading: d.heading || `DETAIL ${String(index+1).padStart(2,'0')}`, body: d.body || '' };
+    }
+    const { rest } = parseInfoText();
+    return { heading: `DETAIL ${String(index+1).padStart(2,'0')}`, body: rest.length ? (rest[index % rest.length]||'') : '' };
+  }
+  function captionBarHeight(ctx, body, panelW){
+    const lines = wrapTextLines(ctx, body, panelW);
+    return 78 + Math.min(lines.length,3)*30 + 32; // eyebrow+heading area + up to 3 body lines + bottom pad
+  }
+  function extraConceptHeight(index, ctx){
+    if((index%4)!==1) return 1000;
+    if(!ctx) return 1180; // safe upper estimate when no ctx available yet
+    const { body } = extraConceptDetail(index);
+    ctx.font = '400 19px Pretendard, sans-serif';
+    return 860 + captionBarHeight(ctx, body, 1000*0.72);
+  }
+  function drawDetailEyebrow(ctx, x, y, text){
+    ctx.font='700 12px "Space Grotesk", sans-serif'; ctx.fillStyle='#2E6F95';
+    setLetterSpacing(ctx,'2px');
+    ctx.fillText(text.toUpperCase(), x, y);
+    setLetterSpacing(ctx,'0px');
+  }
+  function drawExtraSectionConcept(ctx, y, w, sec, index, showLabels){
+    const concept = index % 4;
+    const { heading, body } = extraConceptDetail(index);
+    const eyebrow = sec.label ? sec.label.toUpperCase() : `DETAIL ${String(index+1).padStart(2,'0')}`;
+
+    if(concept===0){ // 풀블리드 — 기본형, 이미지 꽉 채우고 번호칩만
+      drawImageSection(ctx, 0, y, w, 1000, sec, showLabels);
+      return;
+    }
+    if(concept===1){ // 캡션바 — 이미지(고정 860) 아래 제목+설명 밴드 (밴드 높이는 본문 길이에 맞춰 자동 조정)
+      const imgH = 860;
+      ctx.font = '400 19px Pretendard, sans-serif';
+      const padX = w*0.14, panelW = w-padX*2;
+      const barH = captionBarHeight(ctx, body, panelW);
+      drawImageSection(ctx, 0, y, w, imgH, sec, showLabels);
+      ctx.save(); ctx.translate(0, y+imgH);
+      ctx.fillStyle='#FAFAF9'; ctx.fillRect(0,0,w,barH);
+      ctx.strokeStyle='#E3E5E8'; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(0,0.5); ctx.lineTo(w,0.5); ctx.stroke();
+      drawDetailEyebrow(ctx, padX, 40, eyebrow);
+      ctx.font='700 24px Pretendard, sans-serif'; ctx.fillStyle='#1C1C1F';
+      ctx.fillText(heading, padX, 76, panelW);
+      ctx.font='400 19px Pretendard, sans-serif'; ctx.fillStyle='#5B5E64';
+      const lines = wrapTextLines(ctx, body, panelW);
+      let ty = 112;
+      lines.slice(0,3).forEach(l=>{ ctx.fillText(l, padX, ty); ty += 30; });
+      ctx.restore();
+      return;
+    }
+    if(concept===2){ // 텍스트 오버레이 — 이미지 위에 그라데이션+제목
+      drawImageSection(ctx, 0, y, w, 1000, sec, false);
+      ctx.save(); ctx.translate(0, y);
+      const scrim = ctx.createLinearGradient(0, 1000*0.55, 0, 1000);
+      scrim.addColorStop(0,'rgba(0,0,0,0)'); scrim.addColorStop(1,'rgba(0,0,0,0.74)');
+      ctx.fillStyle = scrim; ctx.fillRect(0,0,w,1000);
+      if(showLabels!==false){
+        ctx.font='700 13px "Space Grotesk", sans-serif'; ctx.fillStyle='#E8A33D';
+        setLetterSpacing(ctx,'3px');
+        ctx.fillText(eyebrow, w*0.08, 1000-96);
+        setLetterSpacing(ctx,'0px');
+      }
+      ctx.font='700 34px Pretendard, sans-serif'; ctx.fillStyle='#fff';
+      ctx.fillText(heading, w*0.08, 1000-46, w*0.84);
+      ctx.restore();
+      return;
+    }
+    // concept 3: 분할형 — 이미지(좌 60%) + 제목+설명 패널(우 40%)
+    const imgW = w*0.6;
+    drawImageSection(ctx, 0, y, imgW, 1000, sec, showLabels);
+    ctx.save(); ctx.translate(imgW, y);
+    const panelW = w-imgW, padX = 40;
+    ctx.fillStyle='#FAFAF9'; ctx.fillRect(0,0,panelW,1000);
+    drawDetailEyebrow(ctx, padX, 60, eyebrow);
+    ctx.font='700 30px Pretendard, sans-serif'; ctx.fillStyle='#1C1C1F';
+    const headingLines = wrapTextLines(ctx, heading, panelW-padX*2);
+    let hy = 108;
+    headingLines.slice(0,2).forEach(l=>{ ctx.fillText(l, padX, hy); hy += 40; });
+    ctx.font='400 19px Pretendard, sans-serif'; ctx.fillStyle='#5B5E64';
+    const bodyLines = wrapTextLines(ctx, body, panelW-padX*2);
+    let by = hy+26;
+    bodyLines.slice(0,8).forEach(l=>{ ctx.fillText(l, padX, by); by += 30; });
+    ctx.restore();
+  }
+
+  function detailCardsGridHeight(ctx, details){
+    if(!details.length) return 0;
+    const cols=2, cardH=240, gap=20, pad=40;
+    const rows = Math.ceil(details.length/cols);
+    return 50 + rows*cardH + (rows-1)*gap + 50;
+  }
+  function drawDetailCardsGrid(ctx, y, w, h, details){
+    ctx.save(); ctx.translate(0,y);
+    ctx.fillStyle='#FFFFFF'; ctx.fillRect(0,0,w,h);
+    const cols=2, cardH=240, gap=20, pad=40;
+    const cardW=(w-2*pad-gap)/cols;
+    details.forEach((d,i)=>{
+      const col=i%cols, row=Math.floor(i/cols);
+      const cx=pad+col*(cardW+gap), cy=50+row*(cardH+gap);
+      roundedRectPath(ctx,cx,cy,cardW,cardH,14);
+      ctx.fillStyle='#FAFAF9'; ctx.fill();
+      ctx.font='700 21px Pretendard, sans-serif'; ctx.fillStyle='#1C1C1F';
+      const headingLines = wrapTextLines(ctx, d.heading, cardW-56);
+      let ty = cy+42;
+      headingLines.slice(0,2).forEach(l=>{ ctx.fillText(l, cx+28, ty); ty += 28; });
+      ctx.font='400 16px Pretendard, sans-serif'; ctx.fillStyle='#5B5E64';
+      ty += 8;
+      const bodyLines = wrapTextLines(ctx, d.body, cardW-56);
+      bodyLines.slice(0,5).forEach(l=>{ ctx.fillText(l, cx+28, ty); ty += 25; });
+    });
+    ctx.restore();
+  }
+
+  function renderLayoutA(canvas, sections, showLabels){
+    const heroSection = sections.find(s=>s.kind==='hero');
+    const bodySections = sections.filter(s=>s.kind!=='hero');
+    const realExtrasCount = bodySections.filter(s=>s.kind==='extra').length;
+    const leftoverDetails = state.productDetails.length > realExtrasCount ? state.productDetails.slice(realExtrasCount) : [];
+    const { title, rest, priceLine } = parseInfoText();
+    const w = 1000;
+    const ctx = canvas.getContext('2d'); // grab early so we can measure text before locking in canvas.height
+    const heroH = heroSection ? 1250 : 0;
+    const titleH = priceLine ? 300 : 260;
+    const featH = Math.max(320, 60 + Math.max(rest.length,1)*116);
+    const descH = descriptionBlockHeight(state.productDescription, w, w*0.14);
+    const footerH = 220;
+    const bodyTotal = bodySections.reduce((sum,s,idx)=> sum + (s.kind==='extra' ? extraConceptHeight(idx, ctx) : s.h), 0);
+    const cardsH = detailCardsGridHeight(ctx, leftoverDetails);
+    const total = heroH+titleH+featH+descH+bodyTotal+cardsH+footerH;
+    canvas.width = w; canvas.height = total;
+    ctx.clearRect(0,0,w,total);
+    let y = 0;
+    if(heroSection){ drawImageSection(ctx, 0, y, w, heroH, heroSection, showLabels); y += heroH; }
+    drawTitleBand(ctx, y, w, titleH, title, priceLine); y += titleH;
+    drawFeatureStrip(ctx, y, w, featH, rest); y += featH;
+    if(descH){ drawDescriptionBlock(ctx, y, w, descH, state.productDescription, { bg:'#FAFAF9', text:'#1C1C1F', label:'#2E6F95', padX:w*0.14 }); y += descH; }
+    bodySections.forEach((sec,idx)=>{
+      if(sec.kind==='extra'){ drawExtraSectionConcept(ctx, y, w, sec, idx, showLabels); y += extraConceptHeight(idx, ctx); }
+      else { drawImageSection(ctx, 0, y, w, sec.h, sec, showLabels); y += sec.h; }
+    });
+    if(cardsH){ drawDetailCardsGrid(ctx, y, w, cardsH, leftoverDetails); y += cardsH; }
+    drawFooter(ctx, y, w, footerH, priceLine);
+  }
+
+  // ==================== Layout B — 카드형 ====================
+  function renderLayoutB(canvas, sections, showLabels){
+    const heroSection = sections.find(s=>s.kind==='hero');
+    const bodySections = sections.filter(s=>s.kind!=='hero');
+    const realExtras = bodySections.filter(s=>s.kind==='extra');
+    const isFallback = bodySections.length>0 && bodySections[0].kind==='fallback';
+    const { title, rest, priceLine } = parseInfoText();
+    const features = rest.length ? rest : ['AI 분석 미리보기로 특징을 채우면 여기에 표시돼요'];
+
+    const w = 1000, PAD = 40, GAP = 20;
+    const headerH = 220;
+    const heroCardH = heroSection ? 700 : 0;
+    let extrasBlockH = 0, extraCols = 2, extraCardW = 0, extraCardH = 0, extraRows = 0;
+    if(realExtras.length>0){
+      extraCardW = (w-2*PAD-GAP)/extraCols;
+      extraCardH = extraCardW;
+      extraRows = Math.ceil(realExtras.length/extraCols);
+      extrasBlockH = extraRows*extraCardH + (extraRows-1)*GAP;
+    } else if(isFallback){
+      extrasBlockH = 700;
+    }
+    const featCols = Math.min(features.length,3);
+    const featCardW = (w-2*PAD-(featCols-1)*GAP)/featCols;
+    const featCardH = 210;
+    const featRows = Math.ceil(features.length/featCols);
+    const featBlockH = featRows*featCardH + (featRows-1)*GAP;
+    const footerH = 220;
+    const descPadX = PAD+28;
+    const descH = state.productDescription ? descriptionBlockHeight(state.productDescription, w-2*PAD, descPadX-PAD)+20 : 0;
+
+    const total = headerH + (heroCardH?32+heroCardH:0) + (extrasBlockH?32+extrasBlockH:0) + 32+featBlockH + (descH?32+descH:0) + 40 + footerH;
+    canvas.width = w; canvas.height = total;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0,0,w,total);
+    ctx.fillStyle = '#F2F3F5';
+    ctx.fillRect(0,0,w,total);
+
+    // header
+    ctx.fillStyle = '#FAFAF9';
+    ctx.fillRect(0,0,w,headerH);
+    ctx.strokeStyle = '#E3E5E8'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(0,headerH-0.5); ctx.lineTo(w,headerH-0.5); ctx.stroke();
+    ctx.textAlign='center';
+    ctx.font='800 40px Pretendard, sans-serif';
+    ctx.fillStyle='#1C1C1F';
+    ctx.fillText(title, w/2, headerH*0.48, w*0.86);
+    if(priceLine){
+      const pw = ctx.measureText(priceLine).width;
+      ctx.font='700 22px "Space Grotesk", Pretendard, sans-serif';
+      const pillW = ctx.measureText(priceLine).width+48, pillH=44;
+      roundedRectPath(ctx, w/2-pillW/2, headerH*0.62, pillW, pillH, pillH/2);
+      ctx.fillStyle='#2E6F95'; ctx.fill();
+      ctx.fillStyle='#fff';
+      ctx.fillText(priceLine, w/2, headerH*0.62+pillH/2+8);
+    }
+    ctx.textAlign='left';
+
+    let y = headerH;
+    if(heroSection){
+      y += 32;
+      drawCardWithImage(ctx, PAD, y, w-2*PAD, heroCardH, heroSection, 20);
+      y += heroCardH;
+    }
+    if(realExtras.length>0){
+      y += 32;
+      realExtras.forEach((sec,i)=>{
+        const col = i%extraCols, row = Math.floor(i/extraCols);
+        const cx = PAD + col*(extraCardW+GAP);
+        const cy = y + row*(extraCardH+GAP);
+        drawCardWithImage(ctx, cx, cy, extraCardW, extraCardH, sec, 16);
+      });
+      y += extrasBlockH;
+    } else if(isFallback){
+      y += 32;
+      drawCardWithImage(ctx, PAD, y, w-2*PAD, 700, bodySections[0], 20);
+      y += 700;
+    }
+    y += 32;
+    features.forEach((txt,i)=>{
+      const col = i%featCols, row = Math.floor(i/featCols);
+      const cx = PAD + col*(featCardW+GAP);
+      const cy = y + row*(featCardH+GAP);
+      roundedRectPath(ctx, cx, cy, featCardW, featCardH, 16);
+      ctx.fillStyle='#fff'; ctx.fill();
+      ctx.textAlign='center';
+      const ccx = cx+featCardW/2;
+      ctx.beginPath(); ctx.arc(ccx, cy+64, 26, 0, Math.PI*2);
+      ctx.fillStyle='#EAF2F6'; ctx.fill();
+      ctx.fillStyle='#2E6F95';
+      ctx.font='700 20px "Space Grotesk", sans-serif';
+      ctx.fillText(String(i+1).padStart(2,'0'), ccx, cy+71);
+      ctx.fillStyle='#1C1C1F';
+      ctx.font='500 20px Pretendard, sans-serif';
+      ctx.fillText(txt, ccx, cy+130, featCardW-28);
+      ctx.textAlign='left';
+    });
+    y += featBlockH;
+    if(descH){
+      y += 32;
+      roundedRectPath(ctx, PAD, y, w-2*PAD, descH, 20);
+      ctx.fillStyle='#fff'; ctx.fill();
+      drawDescriptionBlock(ctx, y, w, descH, state.productDescription, { bg:'transparent', text:'#1C1C1F', label:'#2E6F95', padX:descPadX });
+      y += descH;
+    }
+    y += 40;
+    drawFooter(ctx, y, w, footerH, priceLine);
+  }
+
+  // ==================== Layout C — 스퀘어그리드형 ====================
+  function renderLayoutC(canvas, sections, showLabels){
+    const gridSections = sections.filter(s=>s.kind!=='fallback');
+    const { title, rest, priceLine } = parseInfoText();
+    const features = rest.length ? rest : [];
+
+    const w = 1000;
+    const topBarH = 180;
+    const n = Math.max(gridSections.length,1);
+    const cols = n<=1 ? 1 : n<=4 ? 2 : 3;
+    const cellW = w/cols;
+    const rows = Math.ceil(n/cols);
+    const cellH = cellW;
+    const gridH = rows*cellH;
+    const featBarH = 140;
+    const descH = descriptionBlockHeight(state.productDescription, w, w*0.14);
+    const footerH = 220;
+    const total = topBarH+gridH+featBarH+descH+footerH;
+
+    canvas.width = w; canvas.height = total;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0,0,w,total);
+
+    // top bar
+    ctx.fillStyle='#FFFFFF';
+    ctx.fillRect(0,0,w,topBarH);
+    ctx.font='700 34px Pretendard, sans-serif';
+    ctx.fillStyle='#1C1C1F';
+    ctx.fillText(title, 40, topBarH*0.46, w-80);
+    if(priceLine){
+      ctx.font='600 22px "Space Grotesk", Pretendard, sans-serif';
+      ctx.fillStyle='#2E6F95';
+      ctx.fillText(priceLine, 40, topBarH*0.78);
+    }
+    ctx.strokeStyle='#E3E5E8'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(0,topBarH-0.5); ctx.lineTo(w,topBarH-0.5); ctx.stroke();
+
+    // square grid, edge-to-edge with a hairline grout
+    ctx.fillStyle='#F2F3F5';
+    ctx.fillRect(0,topBarH,w,gridH);
+    const inset = 1.5;
+    gridSections.forEach((sec,i)=>{
+      const col = i%cols, row = Math.floor(i/cols);
+      const cx = col*cellW, cy = topBarH+row*cellH;
+      drawImageSection(ctx, cx+inset, cy+inset, cellW-inset*2, cellH-inset*2, sec, false);
+    });
+
+    // compact feature bar
+    const fy = topBarH+gridH;
+    ctx.fillStyle='#FFFFFF';
+    ctx.fillRect(0,fy,w,featBarH);
+    ctx.strokeStyle='#E3E5E8'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(0,fy+0.5); ctx.lineTo(w,fy+0.5); ctx.stroke();
+    if(features.length){
+      ctx.textAlign='center';
+      ctx.font='500 19px Pretendard, sans-serif';
+      ctx.fillStyle='#1C1C1F';
+      ctx.fillText(features.join('   ·   '), w/2, fy+featBarH*0.58, w*0.9);
+      ctx.textAlign='left';
+    } else {
+      ctx.textAlign='center';
+      ctx.font='500 15px Pretendard, sans-serif';
+      ctx.fillStyle='#9A9DA5';
+      ctx.fillText('AI 분석 미리보기로 특징을 채우면 여기에 표시돼요', w/2, fy+featBarH*0.58);
+      ctx.textAlign='left';
+    }
+
+    if(descH){
+      drawDescriptionBlock(ctx, fy+featBarH, w, descH, state.productDescription, { bg:'#FFFFFF', text:'#1C1C1F', label:'#2E6F95', padX:w*0.14 });
+      ctx.strokeStyle='#E3E5E8'; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(0,fy+featBarH+descH-0.5); ctx.lineTo(w,fy+featBarH+descH-0.5); ctx.stroke();
+    }
+    drawFooter(ctx, fy+featBarH+descH, w, footerH, priceLine);
+  }
+
+  // ==================== Layout D — 임팩트형 ====================
+  function renderLayoutD(canvas, sections, showLabels){
+    const heroSection = sections.find(s=>s.kind==='hero');
+    const bodySections = sections.filter(s=>s.kind!=='hero');
+    const { title, rest, priceLine } = parseInfoText();
+    const features = rest.length ? rest : ['AI 분석 미리보기로 특징을 채우면 여기에 표시돼요'];
+
+    const w = 1000;
+    const heroH = heroSection ? 1300 : 0;
+    const bodyTotal = bodySections.reduce((sum,s)=> sum+s.h, 0);
+    const featH = 180;
+    const featBlockH = features.length*featH;
+    const descH = descriptionBlockHeight(state.productDescription, w, w*0.14);
+    const footerH = 240;
+    const total = heroH+bodyTotal+featBlockH+descH+footerH;
+
+    canvas.width = w; canvas.height = total;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0,0,w,total);
+    let y = 0;
+
+    if(heroSection){
+      drawImageSection(ctx, 0, 0, w, heroH, heroSection, false);
+      const scrim = ctx.createLinearGradient(0, heroH*0.45, 0, heroH);
+      scrim.addColorStop(0,'rgba(0,0,0,0)');
+      scrim.addColorStop(1,'rgba(0,0,0,0.82)');
+      ctx.fillStyle = scrim;
+      ctx.fillRect(0,0,w,heroH);
+
+      ctx.font='700 13px "Space Grotesk", sans-serif';
+      ctx.fillStyle='#E8A33D';
+      setLetterSpacing(ctx,'4px');
+      ctx.fillText('PRODUCT DROP', 48, heroH-176);
+      setLetterSpacing(ctx,'0px');
+
+      ctx.font='800 62px Pretendard, sans-serif';
+      ctx.fillStyle='#fff';
+      ctx.fillText(title, 48, heroH-104, w-96);
+
+      if(priceLine){
+        ctx.font='700 26px "Space Grotesk", Pretendard, sans-serif';
+        const pillW = ctx.measureText(priceLine).width+44, pillH=52;
+        roundedRectPath(ctx, 48, heroH-70, pillW, pillH, pillH/2);
+        ctx.fillStyle='#E8A33D'; ctx.fill();
+        ctx.fillStyle='#20180A';
+        ctx.fillText(priceLine, 48+22, heroH-70+pillH/2+9);
+      }
+      y += heroH;
+    }
+
+    bodySections.forEach((sec,i)=>{
+      drawImageSection(ctx, 0, y, w, sec.h, sec, false);
+      if(showLabels!==false && sec.label){
+        ctx.save();
+        ctx.font='800 130px "Space Grotesk", sans-serif';
+        ctx.fillStyle='rgba(255,255,255,0.28)';
+        ctx.fillText(sec.label.replace('상세이미지',''), 36, y+128);
+        ctx.restore();
+      }
+      y += sec.h;
+    });
+
+    features.forEach((txt,i)=>{
+      const bandY = y+i*featH;
+      ctx.fillStyle = i%2===0 ? '#FFFFFF' : '#F6F7F8';
+      ctx.fillRect(0,bandY,w,featH);
+      ctx.font='800 100px "Space Grotesk", sans-serif';
+      ctx.fillStyle='rgba(46,111,149,0.14)';
+      ctx.fillText(String(i+1).padStart(2,'0'), 32, bandY+featH*0.78);
+      ctx.font='700 32px Pretendard, sans-serif';
+      ctx.fillStyle='#1C1C1F';
+      ctx.fillText(txt, 190, bandY+featH*0.58, w-230);
+    });
+    y += featBlockH;
+    if(descH){
+      drawDescriptionBlock(ctx, y, w, descH, state.productDescription, { bg:'#1C1C1F', text:'#E7E8EA', label:'#E8A33D', padX:w*0.14 });
+      y += descH;
+    }
+
+    drawFooter(ctx, y, w, footerH, priceLine);
+  }
+
+  function renderDetailPage(showLabels){
+    const canvas = document.getElementById('detailCanvas');
+    const sections = buildSectionList();
+    if(state.layoutStyle==='B') renderLayoutB(canvas, sections, showLabels);
+    else if(state.layoutStyle==='C') renderLayoutC(canvas, sections, showLabels);
+    else if(state.layoutStyle==='D') renderLayoutD(canvas, sections, showLabels);
+    else renderLayoutA(canvas, sections, showLabels);
+
+    const bodySections = sections.filter(s=>s.kind!=='hero');
+    const note = document.getElementById('detailSectionNote');
+    if(note){
+      const hasExtras = bodySections.length>0 && bodySections[0].kind==='extra';
+      note.textContent = hasExtras
+        ? `히어로 컷 + 추가 사진 ${bodySections.length}장이 순서대로 들어갔어요. AI 합성 시 1단계 배경 대신 AI가 사진마다 어울리는 컨셉을 직접 정해요.`
+        : '추가 사진을 업로드하면 히어로 컷 아래에 순서대로 섹션이 늘어나요.';
+    }
+  }
+
+  function renderLivePreview(){
+    const { title, rest, priceLine } = parseInfoText();
+    const titleH = priceLine ? 300 : 260;
+    const featH = Math.max(320, 60 + Math.max(rest.length,1)*116);
+    const descH = descriptionBlockHeight(state.productDescription, 1000, 1000*0.14);
+    const c = document.getElementById('liveCanvas');
+    c.width = 1000; c.height = titleH+featH+descH;
+    const ctx = c.getContext('2d');
+    ctx.clearRect(0,0,c.width,c.height);
+    drawTitleBand(ctx, 0, 1000, titleH, title, priceLine);
+    drawFeatureStrip(ctx, titleH, 1000, featH, rest);
+    if(descH) drawDescriptionBlock(ctx, titleH+featH, 1000, descH, state.productDescription, { bg:'#FAFAF9', text:'#1C1C1F', label:'#2E6F95', padX:1000*0.14 });
+  }
+
+  function renderFinal(){
+    renderThumbCanvas();
+    renderDetailPage();
+  }
+
+  // ==================== AI natural composite ====================
+  function buildCompositePrompt(productName){
+    const nameLine = productName ? `이 제품의 이름은 "${productName}"이야. ` : '';
+    return `${nameLine}첨부한 두 이미지 중 첫 번째는 제품을 촬영할 스튜디오 배경이고, 두 번째는 실제 판매할 제품 사진이야.
+두 번째 이미지의 제품을 첫 번째 배경 이미지 위에 자연스럽게 합성해줘.
+- 제품은 화면 중앙 아래쪽에 배치하고, 프레임 세로 길이의 65~75% 정도를 차지할 만큼 크고 존재감 있게 그려줘. 배경에 비해 제품이 작아 보이지 않도록 확대해서 배치해줘.
+- 크기와 원근감을 배경과 자연스럽게 어울리도록 조정해줘.
+- 배경의 조명 방향과 톤에 맞는 부드러운 그림자와 은은한 반사광을 제품 아래에 추가해줘.
+- 제품의 실제 형태, 색상, 로고, 디테일은 원본 사진과 동일하게 유지해줘. 제품을 다시 그리거나 다른 디자인으로 바꾸지 마.
+- 배경 자체는 최대한 원본 그대로 유지해줘.
+- 완성된 이미지의 가로세로 비율은 첫 번째 배경 이미지와 동일하게 맞춰줘.
+- 텍스트, 로고, 워터마크, 프레임은 절대 추가하지 마. 실제 촬영한 사진처럼 자연스러운 결과만 만들어줘.`;
+  }
+
+  async function callGeminiComposite(apiKey, entry, dim, productName){
+    const bgCanvas = renderBackgroundOnlyCanvas(dim.w, dim.h);
+    const bgBase64 = bgCanvas.toDataURL('image/png').split(',')[1];
+    const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_IMAGE_MODEL}:generateContent?key=${encodeURIComponent(apiKey)}`, {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({
+        contents:[{ parts:[
+          { text: buildCompositePrompt(productName) },
+          { inline_data: { mime_type:'image/png', data: bgBase64 } },
+          { inline_data: { mime_type: entry.mime, data: entry.base64 } }
+        ]}],
+        generationConfig: { responseModalities: ['TEXT','IMAGE'], thinkingConfig: { thinkingLevel: 'high' } }
+      })
+    });
+    if(!resp.ok) throw new Error('API 응답 오류 ('+resp.status+')');
+    const data = await resp.json();
+    const parts = data?.candidates?.[0]?.content?.parts || [];
+    const imgPart = parts.find(p => p.inlineData || p.inline_data);
+    const inline = imgPart && (imgPart.inlineData || imgPart.inline_data);
+    if(!inline || !inline.data) throw new Error('이미지를 생성하지 못했어요');
+    const img = new Image();
+    await new Promise((resolve,reject)=>{
+      img.onload = resolve; img.onerror = reject;
+      img.src = `data:${inline.mimeType || inline.mime_type || 'image/png'};base64,${inline.data}`;
+    });
+    return img;
+  }
+
+  function buildFreeConceptPrompt(aspectLabel, productName){
+    const nameLine = productName ? `이 제품의 이름은 "${productName}"이야. ` : '';
+    return `${nameLine}첨부한 이미지는 실제 판매할 제품 사진이야. 이 제품에 어울리는 깔끔하고 전문적인 스튜디오 컨셉을 네가 직접 정해서, 완전히 새로운 고품질 제품 사진처럼 다시 만들어줘.
+- 배경은 제품 톤에 어울리는 깔끔한 단색 또는 그라데이션 스튜디오 배경으로 자유롭게 정해줘 (화이트, 베이지, 그레이 계열 중 가장 잘 어울리는 것).
+- 부드러운 스튜디오 조명과 자연스러운 그림자·은은한 반사를 넣어서 실제로 스튜디오에서 촬영한 사진처럼 만들어줘.
+- 제품의 실제 형태, 색상, 로고, 디테일은 원본 사진과 동일하게 유지해줘. 제품을 다시 그리거나 다른 디자인으로 바꾸지 마.
+- 완성된 이미지의 가로세로 비율은 ${aspectLabel}로 만들어줘.
+- 텍스트, 로고, 워터마크, 프레임은 절대 추가하지 마. 잡지 화보처럼 깔끔하고 자연스러운 결과만 만들어줘.`;
+  }
+
+  async function callGeminiFreeConcept(apiKey, entry, aspectLabel, productName){
+    const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_IMAGE_MODEL}:generateContent?key=${encodeURIComponent(apiKey)}`, {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({
+        contents:[{ parts:[
+          { text: buildFreeConceptPrompt(aspectLabel, productName) },
+          { inline_data: { mime_type: entry.mime, data: entry.base64 } }
+        ]}],
+        generationConfig: { responseModalities: ['TEXT','IMAGE'], thinkingConfig: { thinkingLevel: 'high' } }
+      })
+    });
+    if(!resp.ok) throw new Error('API 응답 오류 ('+resp.status+')');
+    const data = await resp.json();
+    const parts = data?.candidates?.[0]?.content?.parts || [];
+    const imgPart = parts.find(p => p.inlineData || p.inline_data);
+    const inline = imgPart && (imgPart.inlineData || imgPart.inline_data);
+    if(!inline || !inline.data) throw new Error('이미지를 생성하지 못했어요');
+    const img = new Image();
+    await new Promise((resolve,reject)=>{
+      img.onload = resolve; img.onerror = reject;
+      img.src = `data:${inline.mimeType || inline.mime_type || 'image/png'};base64,${inline.data}`;
+    });
+    return img;
+  }
+
+  function checkApiKeyOrWarn(statusEl){
+    const apiKey = (localStorage.getItem('ssaka_studio_gemini_key')||'').trim();
+    if(!apiKey){
+      drawer.classList.add('open');
+      apiKeyInput.focus();
+      statusEl.className = 'ai-status error';
+      statusEl.textContent = 'Gemini API Key를 먼저 입력해 주세요 (우측 상단 설정).';
+      return null;
+    }
+    return apiKey;
+  }
+
+  // ---- Loading overlay helper ----
+  function setLoadingOverlay(kind, show, text){
+    const overlay = document.getElementById(kind==='thumb' ? 'thumbLoadingOverlay' : 'detailLoadingOverlay');
+    const textEl = document.getElementById(kind==='thumb' ? 'thumbLoadingText' : 'detailLoadingText');
+    if(text!==undefined && textEl) textEl.textContent = text;
+    if(overlay) overlay.classList.toggle('show', show);
+  }
+
+  // ---- Thumbnail: always shows the AI result once available ----
+  async function generateThumbAI(){
+    const statusEl = document.getElementById('aiStatusThumb');
+    if(!state.productImage){ statusEl.className='ai-status error'; statusEl.textContent='먼저 2단계에서 제품 이미지를 업로드해 주세요.'; return; }
+    const apiKey = checkApiKeyOrWarn(statusEl);
+    if(!apiKey) return;
+    viewState.thumb = 'ai';
+    statusEl.className='ai-status'; statusEl.textContent='AI가 합성하고 있어요... (10~20초 정도 걸려요)';
+    setLoadingOverlay('thumb', true, 'AI가 합성하고 있어요...');
+    try{
+      const primaryEntry = state.productImages.find(p=>p.id===state.primaryId);
+      const img = await callGeminiComposite(apiKey, primaryEntry, SQUARE_DIM, getCurrentProductName());
+      aiCache.thumb = img;
+      renderThumbCanvas();
+      statusEl.className='ai-status'; statusEl.textContent='AI 합성 완료! 마음에 안 들면 ↻ 다시 생성을 눌러보세요.';
+    }catch(err){
+      statusEl.className='ai-status error';
+      statusEl.textContent = err instanceof TypeError
+        ? '네트워크 요청에 실패했어요 (Failed to fetch). 인터넷 연결, API 키, 광고 차단·보안 확장 프로그램을 확인해 주세요.'
+        : '합성에 실패했어요 (' + err.message + '). ↻로 다시 시도해 주세요.';
+      viewState.thumb='canvas'; renderThumbCanvas();
+    }finally{
+      setLoadingOverlay('thumb', false);
+    }
+  }
+  document.getElementById('thumbRegen').addEventListener('click', generateThumbAI);
+
+  // ---- Detail page: whole-page AI generation (hero + every extra section), always preferred once available ----
+  async function generateWholePageAI(){
+    const statusEl = document.getElementById('aiStatusDetail');
+    if(!state.productImage){ statusEl.className='ai-status error'; statusEl.textContent='먼저 2단계에서 제품 이미지를 업로드해 주세요.'; return; }
+    const apiKey = checkApiKeyOrWarn(statusEl);
+    if(!apiKey) return;
+
+    const sections = buildSectionList();
+    const hasExtras = sections.some(s=>s.kind==='extra');
+    detailViewMode = 'ai';
+    setLoadingOverlay('detail', true, `AI가 합성 준비 중이에요... (0/${sections.length})`);
+    const productName = getCurrentProductName();
+
+    let okCount = 0;
+    for(let i=0;i<sections.length;i++){
+      const sec = sections[i];
+      const progressText = hasExtras
+        ? `AI가 깔끔한 컨셉으로 분석해서 만들고 있어요... (${i+1}/${sections.length})`
+        : `AI가 배경과 자연스럽게 합성하고 있어요... (${i+1}/${sections.length})`;
+      statusEl.className = 'ai-status';
+      statusEl.textContent = progressText;
+      setLoadingOverlay('detail', true, progressText);
+      try{
+        const img = hasExtras
+          ? await callGeminiFreeConcept(apiKey, sec.entry, sec.kind==='hero' ? '세로형 (4:5)' : '정사각형 (1:1)', productName)
+          : await callGeminiComposite(apiKey, sec.entry, sec.dim, productName);
+        aiSectionCache[sec.id] = img;
+        okCount++;
+      }catch(e){ /* leave this section on Canvas fallback */ }
+      renderDetailPage();
+    }
+    setLoadingOverlay('detail', false);
+
+    if(okCount===sections.length){
+      statusEl.className='ai-status';
+      statusEl.textContent = hasExtras
+        ? `AI 합성 완료! (1단계 배경 대신 AI가 정한 컨셉으로 ${sections.length}개 섹션을 만들었어요) 마음에 안 들면 ↻ 다시 생성을 눌러보세요.`
+        : `AI 합성 완료! 1단계 배경에 전체 ${sections.length}개 섹션이 자연스럽게 합성됐어요. 마음에 안 들면 ↻ 다시 생성을 눌러보세요.`;
+    } else if(okCount>0){
+      statusEl.className='ai-status error';
+      statusEl.textContent = `일부만 합성됐어요 (${okCount}/${sections.length}). ↻ 다시 생성을 눌러 재시도해 주세요.`;
+    } else {
+      statusEl.className='ai-status error';
+      statusEl.textContent = '합성에 실패했어요. 네트워크·API 키를 확인하고 ↻로 다시 시도해 주세요.';
+      detailViewMode='canvas'; renderDetailPage();
+    }
+  }
+  document.getElementById('detailRegen').addEventListener('click', generateWholePageAI);
+
+  document.querySelectorAll('.gen-images-btn').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const allBtns = document.querySelectorAll('.gen-images-btn');
+      allBtns.forEach(b=> b.disabled = true);
+      try{
+        await Promise.all([ generateThumbAI(), generateWholePageAI() ]);
+      } finally {
+        allBtns.forEach(b=> b.disabled = false);
+      }
+    });
+  });
+
+  const LAYOUT_CAPTIONS = {
+    A: '1000 × 가변 높이 · 히어로 컷 → 타이틀 → 특징 → 설명 문단 → 추가 사진(풀블리드·캡션바·오버레이·분할형 4가지 순환) → 클로징 (매거진 에디토리얼 스타일)',
+    B: '1000 × 가변 높이 · 헤더 → 히어로 카드 → 사진 카드 그리드(2열) → 특징 카드 → 설명 카드 → 클로징 (카드 UI 스타일)',
+    C: '1000 × 가변 높이 · 타이틀 바 → 정사각형 이미지 그리드(인스타 그리드 느낌) → 특징 한 줄 요약 → 설명 문단 → 클로징',
+    D: '1000 × 가변 높이 · 큰 타이포 포스터형 히어로 → 추가 사진 풀블리드 → 특징 임팩트 밴드 → 다크 설명 문단 → 클로징'
+  };
+  function updateLayoutCap(){
+    const el = document.getElementById('detailLayoutCap');
+    if(el) el.textContent = LAYOUT_CAPTIONS[state.layoutStyle] || LAYOUT_CAPTIONS.A;
+  }
+  document.querySelectorAll('.style-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      state.layoutStyle = btn.dataset.style;
+      document.querySelectorAll('.style-btn').forEach(b=> b.classList.toggle('active', b===btn));
+      updateLayoutCap();
+      renderDetailPage();
+    });
+  });
+
+  // ==================== Step 1: background grid ====================
+  function buildPresetCard(preset){
+    const card = document.createElement('div');
+    card.className = 'bg-card';
+    card.dataset.id = preset.id;
+    const canvas = document.createElement('canvas');
+    canvas.width = 220; canvas.height = 160;
+    drawStudioBackground(canvas.getContext('2d'), 220, 160, preset);
+    drawPlaceholderProduct(canvas.getContext('2d'), 220, 160);
+    const nameRow = document.createElement('div');
+    nameRow.className = 'name';
+    nameRow.innerHTML = `<span class="check"></span><span>${preset.name}</span>`;
+    card.appendChild(canvas);
+    card.appendChild(nameRow);
+    card.addEventListener('click', ()=>selectPreset(preset.id));
+    return card;
+  }
+  function buildCustomCard(bg){
+    const card = document.createElement('div');
+    card.className = 'bg-card';
+    card.dataset.id = bg.id;
+    const thumb = document.createElement('div');
+    thumb.className = 'bg-thumb-img';
+    thumb.style.backgroundImage = `url(${bg.dataUrl})`;
+    const del = document.createElement('button');
+    del.className = 'bg-del'; del.type='button'; del.title='삭제'; del.innerHTML='×';
+    del.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      if(confirm(`'${bg.name}' 배경을 삭제할까요?`)) deleteCustomBg(bg.id);
+    });
+    thumb.appendChild(del);
+    const nameRow = document.createElement('div');
+    nameRow.className = 'name';
+    nameRow.innerHTML = `<span class="check"></span><span>${bg.name}</span>`;
+    nameRow.addEventListener('click', (e)=>{ e.stopPropagation(); renameCustomBg(bg.id); });
+    nameRow.title = '클릭해서 이름 변경';
+    card.appendChild(thumb);
+    card.appendChild(nameRow);
+    card.addEventListener('click', ()=>selectPreset(bg.id));
+    return card;
+  }
+  function buildUploadTile(){
+    const tile = document.createElement('div');
+    tile.className = 'bg-card upload-tile';
+    tile.innerHTML = `
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B6E75" stroke-width="1.7"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      <span>배경 레퍼런스 등록</span>`;
+    tile.addEventListener('click', ()=> document.getElementById('bgFileInput').click());
+    return tile;
+  }
+  function buildBgGrid(){
+    const grid = document.getElementById('bgGrid');
+    grid.innerHTML = '';
+    PRESETS.forEach(preset=> grid.appendChild(buildPresetCard(preset)));
+    customBgs.forEach(bg=> grid.appendChild(buildCustomCard(bg)));
+    grid.appendChild(buildUploadTile());
+  }
+  function selectPreset(id){
+    state.presetId = id;
+    document.querySelectorAll('.bg-card').forEach(el=>{
+      el.classList.toggle('selected', el.dataset.id===id);
+    });
+    document.getElementById('toStep2').disabled = false;
+    resetAiComposites();
+  }
+
+  document.getElementById('bgFileInput').addEventListener('change', async (e)=>{
+    const files = Array.from(e.target.files || []);
+    for(const file of files){
+      if(!file.type.startsWith('image/')) continue;
+      try{
+        const dataUrl = await resizeImageForStorage(file);
+        const bg = { id:'custom_'+Date.now()+Math.random().toString(36).slice(2,6), name:`레퍼런스 ${customBgs.length+1}`, dataUrl };
+        customBgs.push(bg);
+        saveCustomBgs();
+        await preloadCustomImage(bg);
+        const grid = document.getElementById('bgGrid');
+        const uploadTile = grid.querySelector('.upload-tile');
+        grid.insertBefore(buildCustomCard(bg), uploadTile);
+      }catch(err){
+        alert('배경 이미지를 불러오지 못했어요. 다른 이미지로 시도해 주세요.');
+      }
+    }
+    e.target.value = '';
+  });
+
+  // ---- Logo field (separate from background) ----
+  function renderLogoGrid(){
+    const grid = document.getElementById('logoGrid');
+    grid.innerHTML = '';
+    logos.forEach(entry=>{
+      const isActive = entry.id===activeLogoId;
+      const item = document.createElement('div');
+      item.className = 'gallery-item logo-item' + (isActive ? ' primary' : '');
+      const img = document.createElement('img');
+      img.src = entry.dataUrl;
+      const del = document.createElement('button');
+      del.className = 'del'; del.type='button'; del.innerHTML='×'; del.title='로고 삭제';
+      del.addEventListener('click', (e)=>{ e.stopPropagation(); deleteLogo(entry.id); });
+      item.appendChild(img);
+      if(isActive){
+        const badge = document.createElement('span');
+        badge.className='badge'; badge.textContent='사용중';
+        item.appendChild(badge);
+      }
+      item.appendChild(del);
+      item.addEventListener('click', ()=> selectLogo(entry.id));
+      grid.appendChild(item);
+    });
+    const addTile = document.createElement('div');
+    addTile.className = 'gallery-item add-tile';
+    addTile.innerHTML = '<span style="font-size:20px;">+</span><span>로고 추가</span>';
+    addTile.addEventListener('click', ()=> document.getElementById('logoFileInput').click());
+    grid.appendChild(addTile);
+  }
+  function selectLogo(id){
+    activeLogoId = id;
+    const entry = logos.find(l=>l.id===id);
+    preloadLogo(entry ? entry.dataUrl : null).then(()=>{ renderThumbCanvas(); renderDetailPage(); });
+    renderLogoGrid();
+  }
+  function deleteLogo(id){
+    logos = logos.filter(l=>l.id!==id);
+    saveLogos();
+    if(activeLogoId===id){
+      activeLogoId = logos.length ? logos[0].id : null;
+      const entry = logos.find(l=>l.id===activeLogoId);
+      preloadLogo(entry ? entry.dataUrl : null).then(()=>{ renderThumbCanvas(); renderDetailPage(); });
+    }
+    renderLogoGrid();
+  }
+  document.getElementById('logoFileInput').addEventListener('change', async (e)=>{
+    const files = Array.from(e.target.files || []);
+    e.target.value = '';
+    for(const file of files){
+      if(!file.type.startsWith('image/')) continue;
+      try{
+        const dataUrl = await resizeLogoForStorage(file);
+        const entry = { id:'logo_'+Date.now()+Math.random().toString(36).slice(2,6), dataUrl };
+        logos.push(entry);
+        if(!activeLogoId){ activeLogoId = entry.id; await preloadLogo(dataUrl); renderThumbCanvas(); renderDetailPage(); }
+      }catch(err){
+        alert('로고 이미지를 불러오지 못했어요. 다른 이미지로 시도해 주세요.');
+      }
+    }
+    saveLogos();
+    renderLogoGrid();
+  });
+
+  // ==================== Step navigation ====================
+  function updateSidebar(){
+    document.querySelectorAll('.step-item').forEach(el=>{
+      const n = Number(el.dataset.step);
+      el.classList.toggle('active', n===state.step);
+      el.classList.toggle('unlocked', n<=state.maxUnlocked);
+      el.classList.toggle('done', n<state.maxUnlocked || (n===3 && state.step===3));
+    });
+    const blades = document.getElementById('blades');
+    blades.style.setProperty('--open', ((state.step-1)*7)+'deg');
+  }
+  function goToStep(n){
+    state.step = n;
+    state.maxUnlocked = Math.max(state.maxUnlocked, n);
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    document.getElementById('panel-'+n).classList.add('active');
+    updateSidebar();
+    window.scrollTo({top:0, behavior:'smooth'});
+    if(n===3) renderFinal();
+  }
+  document.querySelectorAll('.step-item').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const n = Number(el.dataset.step);
+      if(n<=state.maxUnlocked) goToStep(n);
+    });
+  });
+
+  // ==================== Settings drawer ====================
+  const drawer = document.getElementById('settingsDrawer');
+  const apiKeyInput = document.getElementById('apiKeyInput');
+  document.getElementById('settingsToggle').addEventListener('click', ()=>{
+    drawer.classList.toggle('open');
+  });
+  apiKeyInput.value = localStorage.getItem('ssaka_studio_gemini_key') || '';
+  function updateAutoGenHint(){
+    const el = document.getElementById('autoGenHint');
+    if(!el) return;
+    const hasKey = !!(localStorage.getItem('ssaka_studio_gemini_key')||'').trim();
+    el.textContent = hasKey
+      ? '✅ API 키가 등록돼 있어요. 위 버튼으로 AI 분석을 실행하고, 다음 단계에서 이미지도 AI로 생성할 수 있어요.'
+      : '⚠️ 아직 API 키가 없어요. AI 분석과 다음 단계의 이미지 생성 모두 API 키가 필요해요 — 우측 상단 설정에서 먼저 등록해 보세요.';
+  }
+  apiKeyInput.addEventListener('input', ()=>{
+    localStorage.setItem('ssaka_studio_gemini_key', apiKeyInput.value.trim());
+    updateAutoGenHint();
+  });
+
+  // ==================== Step 1 buttons ====================
+  document.getElementById('toStep2').addEventListener('click', ()=>goToStep(2));
+
+  // ==================== Step 2: upload (multi reference, ordered) ====================
+  const dropzone = document.getElementById('dropzone');
+  const fileInput = document.getElementById('fileInput');
+  dropzone.addEventListener('click', ()=>fileInput.click());
+  dropzone.addEventListener('dragover', e=>{ e.preventDefault(); dropzone.classList.add('drag'); });
+  dropzone.addEventListener('dragleave', ()=> dropzone.classList.remove('drag'));
+  dropzone.addEventListener('drop', e=>{
+    e.preventDefault(); dropzone.classList.remove('drag');
+    if(e.dataTransfer.files && e.dataTransfer.files.length) handleFiles(e.dataTransfer.files);
+  });
+  fileInput.addEventListener('change', e=>{
+    if(e.target.files && e.target.files.length) handleFiles(e.target.files);
+  });
+
+  function readFileAsEntry(file){
+    return new Promise((resolve,reject)=>{
+      if(!file.type.startsWith('image/')){ reject(new Error('이미지 파일이 아니에요')); return; }
+      const reader = new FileReader();
+      reader.onload = ()=>{
+        const dataUrl = reader.result;
+        const img = new Image();
+        img.onload = ()=> resolve({
+          id: 'p_'+Date.now()+Math.random().toString(36).slice(2,6),
+          img, dataUrl,
+          base64: dataUrl.split(',')[1],
+          mime: file.type || 'image/jpeg'
+        });
+        img.onerror = reject;
+        img.src = dataUrl;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function handleFiles(fileList){
+    const files = Array.from(fileList);
+    for(const file of files){
+      try{
+        const entry = await readFileAsEntry(file);
+        state.productImages.push(entry);
+        if(!state.primaryId) setPrimary(entry.id, { silent:true });
+      }catch(e){ /* skip invalid file */ }
+    }
+    document.getElementById('uploadPreviewWrap').style.display = 'block';
+    document.getElementById('toStep3').disabled = state.productImages.length===0;
+    renderGallery();
+    resetAiComposites();
+    fileInput.value = '';
+  }
+
+  function setPrimary(id, opts){
+    const entry = state.productImages.find(p=>p.id===id);
+    if(!entry) return;
+    state.primaryId = id;
+    state.productImage = entry.img;
+    state.productBase64 = entry.base64;
+    state.productMime = entry.mime;
+    if(!opts || !opts.silent){ renderGallery(); resetAiComposites(); }
+  }
+
+  function deleteProductImage(id){
+    state.productImages = state.productImages.filter(p=>p.id!==id);
+    if(state.primaryId===id){
+      state.primaryId = null; state.productImage = null; state.productBase64=null;
+      if(state.productImages.length) setPrimary(state.productImages[0].id, { silent:true });
+    }
+    document.getElementById('toStep3').disabled = state.productImages.length===0;
+    if(state.productImages.length===0) document.getElementById('uploadPreviewWrap').style.display='none';
+    renderGallery();
+    resetAiComposites();
+  }
+
+  function moveProductImage(fromIdx, toIdx){
+    if(toIdx<0 || toIdx>=state.productImages.length || fromIdx===toIdx) return;
+    const [item] = state.productImages.splice(fromIdx,1);
+    state.productImages.splice(toIdx,0,item);
+    renderGallery();
+  }
+  function buildMoveRow(index, total){
+    const row = document.createElement('div');
+    row.className = 'move-row';
+    const left = document.createElement('button');
+    left.type='button'; left.className='move-btn'; left.innerHTML='‹'; left.title='앞으로 이동';
+    left.disabled = index===0;
+    left.addEventListener('click', (e)=>{ e.stopPropagation(); moveProductImage(index, index-1); });
+    const right = document.createElement('button');
+    right.type='button'; right.className='move-btn'; right.innerHTML='›'; right.title='뒤로 이동';
+    right.disabled = index===total-1;
+    right.addEventListener('click', (e)=>{ e.stopPropagation(); moveProductImage(index, index+1); });
+    row.appendChild(left); row.appendChild(right);
+    return row;
+  }
+
+  let dragSrcIndex = null;
+  function clearDragOverStyles(){
+    document.querySelectorAll('.gallery-item.drag-over').forEach(el=>el.classList.remove('drag-over'));
+  }
+  function attachDragReorder(item, index){
+    item.draggable = true;
+    item.addEventListener('dragstart', (e)=>{
+      dragSrcIndex = index;
+      item.classList.add('dragging');
+      try{ e.dataTransfer.setData('text/plain', String(index)); }catch(err){ /* some browsers restrict this, ignore */ }
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    item.addEventListener('dragend', ()=>{
+      item.classList.remove('dragging');
+      clearDragOverStyles();
+      dragSrcIndex = null;
+    });
+    item.addEventListener('dragover', (e)=>{
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      item.classList.add('drag-over');
+    });
+    item.addEventListener('dragleave', ()=>{ item.classList.remove('drag-over'); });
+    item.addEventListener('drop', (e)=>{
+      e.preventDefault();
+      item.classList.remove('drag-over');
+      let src = dragSrcIndex;
+      if(src===null || src===undefined){
+        const raw = e.dataTransfer.getData('text/plain');
+        src = raw ? parseInt(raw,10) : null;
+      }
+      if(src===null || Number.isNaN(src)) return;
+      moveProductImage(src, index);
+    });
+  }
+
+  function renderGallery(){
+    const gal = document.getElementById('productGallery');
+    gal.innerHTML = '';
+    let extraIndex = 0;
+    state.productImages.forEach((entry, index)=>{
+      const isPrimary = entry.id===state.primaryId;
+      const item = document.createElement('div');
+      item.className = 'gallery-item' + (isPrimary ? ' primary' : '');
+      const img = document.createElement('img');
+      img.src = entry.dataUrl;
+      const del = document.createElement('button');
+      del.className = 'del'; del.type='button'; del.innerHTML='×'; del.title='삭제';
+      del.addEventListener('click', (e)=>{ e.stopPropagation(); deleteProductImage(entry.id); });
+      item.appendChild(img);
+      if(isPrimary){
+        const badge = document.createElement('span');
+        badge.className='badge'; badge.textContent='대표이미지';
+        item.appendChild(badge);
+      } else {
+        extraIndex++;
+        const badge = document.createElement('span');
+        badge.className='badge num'; badge.textContent = `상세이미지${extraIndex}`;
+        item.appendChild(badge);
+      }
+      item.appendChild(del);
+      item.appendChild(buildMoveRow(index, state.productImages.length));
+      attachDragReorder(item, index);
+      item.addEventListener('click', ()=> setPrimary(entry.id));
+      gal.appendChild(item);
+    });
+    const addTile = document.createElement('div');
+    addTile.className = 'gallery-item add-tile';
+    addTile.innerHTML = '<span style="font-size:20px;">+</span><span>추가</span>';
+    addTile.addEventListener('click', ()=> fileInput.click());
+    gal.appendChild(addTile);
+  }
+
+  document.getElementById('backTo1').addEventListener('click', ()=> goToStep(1));
+  document.getElementById('toStep3').addEventListener('click', async ()=>{
+    await ensureFonts();
+    if(analysisPromise) await analysisPromise; // let an in-flight "AI 분석 미리보기" finish first, so its result (product name, etc.) is used for image generation
+    Promise.all([ generateThumbAI(), generateWholePageAI() ]); // start AI compositing right as "다음" is clicked
+    goToStep(3);
+  });
+
+  const productNameHint = document.getElementById('productNameHint');
+  const productCodeHint = document.getElementById('productCodeHint');
+
+  // ==================== Step 3: form ====================
+  const infoTextEl = document.getElementById('infoText');
+  infoTextEl.addEventListener('input', ()=>{ state.infoText = infoTextEl.value; renderLivePreview(); runTextAnalysis(); });
+
+  // ---- Text analysis (product-copy quality check, adapted from Naver AI Briefing's 5 citation criteria) ----
+  const VAGUE_WORDS = ['최고','완벽','짱','대박','핫딜','초특가','역대급','미쳤다','갓성비','인생템','국내 유일','업계 최초'];
+  function runTextAnalysis(){
+    const ul = document.getElementById('checkList');
+    if(!ul) return;
+    const { title, rest, priceLine } = parseInfoText();
+    const hasTitle = title && title!=='제목을 입력하세요';
+    const tLen = hasTitle ? title.length : 0;
+    const fullText = ((hasTitle?title:'') + ' ' + rest.join(' ')).toLowerCase();
+    const foundVague = VAGUE_WORDS.filter(w => fullText.includes(w));
+    const hasSpecifics = /\d/.test(rest.join(''));
+
+    const checks = [
+      { ok: hasTitle && tLen>=6 && tLen<=24,
+        label: hasTitle ? `제목 길이 ${tLen}자 (권장 6~24자)` : '제목이 비어 있어요' },
+      { ok: !!priceLine,
+        label: priceLine ? '가격이 명시돼 있어요' : '가격이 없어요 — "₩"나 "원"이 들어간 줄을 추가해 보세요' },
+      { ok: rest.length>=3,
+        label: `핵심 특징 ${rest.length}개 (권장 3개 이상 — 가독성·정보성 기준)` },
+      { ok: foundVague.length===0,
+        label: foundVague.length ? `모호한 과장 표현 발견: "${foundVague.join(', ')}" — 구체적 소재·수치로 바꾸면 진정성 기준에 유리해요` : '과장된 홍보 문구 없이 담백하게 작성됐어요 (진정성 기준 충족)' },
+      { ok: hasSpecifics,
+        label: hasSpecifics ? '특징에 구체적인 수치가 포함돼 있어요 (전문성 기준 충족)' : '특징에 구체적인 수치(cm·g·%)를 넣으면 전문성 기준에 더 유리해요' }
+    ];
+
+    ul.innerHTML = '';
+    checks.forEach(c=>{
+      const li = document.createElement('li');
+      li.className = c.ok ? '' : 'warn';
+      li.innerHTML = `<span class="icon">${c.ok?'✅':'⚠️'}</span><span>${c.label}</span>`;
+      ul.appendChild(li);
+    });
+  }
+
+  document.getElementById('aiTextPolishBtn').addEventListener('click', analyzeTextWithAI);
+  async function analyzeTextWithAI(){
+    const apiKey = (localStorage.getItem('ssaka_studio_gemini_key')||'').trim();
+    const box = document.getElementById('aiTextPolishResult');
+    if(!(state.infoText||'').trim()){
+      box.style.display='block'; box.className='ai-box error';
+      box.textContent = '먼저 텍스트를 입력해 주세요.';
+      return;
+    }
+    if(!apiKey){
+      drawer.classList.add('open');
+      apiKeyInput.focus();
+      box.style.display='block'; box.className='ai-box error';
+      box.textContent = 'Gemini API Key를 먼저 입력해 주세요 (우측 상단 설정).';
+      return;
+    }
+    const btn = document.getElementById('aiTextPolishBtn');
+    btn.disabled = true;
+    box.style.display='block'; box.className='ai-box loading';
+    box.textContent = '문구를 분석하고 있어요...';
+    try{
+      const prompt = `당신은 이커머스 상품 카피라이터입니다. 아래 상품 정보 텍스트를 분석하고 개선안을 제시하세요.
+
+현재 텍스트:
+"""
+${state.infoText}
+"""
+
+다음 기준으로 평가하고 개선해주세요 (네이버 AI브리핑 인용 5대 기준 중 상품 카피에 적용 가능한 부분):
+- 전문성: 모호한 과장 표현 대신 구체적인 스펙·수치가 있는가
+- 진정성·투명성: 광고성 문구가 아닌 담백한 사실 위주인가
+- 가독성: 제목은 명확하고 특징은 짧고 구체적인가
+
+다른 설명 없이 JSON 객체 하나만 출력하세요:
+{"score":"상 또는 중 또는 하","feedback":"1~2문장 총평","improved":"개선된 버전. 첫 줄=제목, 가격 줄은 원본에 있었다면 유지, 이후 줄=특징. 원본과 같은 줄바꿈 구조로."}`;
+      const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_TEXT_MODEL}:generateContent?key=${encodeURIComponent(apiKey)}`, {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json' },
+        body: JSON.stringify({ contents:[{ parts:[{ text: prompt }] }] })
+      });
+      if(!resp.ok) throw new Error('API 응답 오류 ('+resp.status+')');
+      const data = await resp.json();
+      let text = data?.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('') || '';
+      text = text.replace(/```json|```/g,'').trim();
+      const parsed = JSON.parse(text);
+      const improved = (parsed.improved || '').trim();
+
+      box.className = 'ai-box success';
+      box.innerHTML = `<div class="ai-result-row"><b>평가</b> ${parsed.score||'-'}</div><div class="ai-result-row"><b>총평</b> ${parsed.feedback||'-'}</div>`;
+      if(improved){
+        const pre = document.createElement('div');
+        pre.style.cssText = 'margin-top:8px;white-space:pre-wrap;font-size:12.5px;background:var(--stage);border-radius:8px;padding:10px;';
+        pre.textContent = improved;
+        box.appendChild(pre);
+        const applyBtn = document.createElement('button');
+        applyBtn.className = 'btn btn-primary btn-sm';
+        applyBtn.style.marginTop = '8px';
+        applyBtn.textContent = '이 버전 적용하기';
+        applyBtn.addEventListener('click', ()=>{
+          state.infoText = improved;
+          infoTextEl.value = improved;
+          renderLivePreview();
+          runTextAnalysis();
+        });
+        box.appendChild(applyBtn);
+      }
+    }catch(err){
+      box.className = 'ai-box error';
+      box.textContent = err instanceof TypeError
+        ? '네트워크 요청에 실패했어요 (Failed to fetch). 인터넷 연결과 API 키를 확인해 주세요.'
+        : '분석에 실패했어요 (' + err.message + '). 다시 시도해 주세요.';
+    }finally{
+      btn.disabled = false;
+    }
+  }
+
+  // ---- AI 분석 미리보기: 헤드라인 / 서브헤드라인 / USP / 설명 ----
+  let lastAnalysisResult = null;
+  let analysisPromise = null; // tracks an in-flight "AI 분석 미리보기" run so "다음" can wait for it
+
+  document.getElementById('aiProductAnalysisBtn').addEventListener('click', ()=>{
+    analysisPromise = runProductAnalysisPreview();
+  });
+
+  async function runProductAnalysisPreview(){
+    const statusEl = document.getElementById('aiProductAnalysisStatus');
+    const card = document.getElementById('aiProductAnalysisCard');
+    if(state.productImages.length===0){
+      statusEl.className='ai-status error';
+      statusEl.textContent = '먼저 2단계에서 제품 이미지를 업로드해 주세요.';
+      return;
+    }
+    const apiKey = (localStorage.getItem('ssaka_studio_gemini_key')||'').trim();
+    if(!apiKey){
+      drawer.classList.add('open');
+      apiKeyInput.focus();
+      statusEl.className='ai-status error';
+      statusEl.textContent = 'Gemini API Key를 먼저 입력해 주세요 (우측 상단 설정).';
+      return;
+    }
+    const btn = document.getElementById('aiProductAnalysisBtn');
+    btn.disabled = true;
+    statusEl.className='ai-status';
+    statusEl.textContent = 'AI가 제품을 분석하고 카피를 만들고 있어요...';
+    card.style.display = 'none';
+
+    try{
+      const imageParts = state.productImages.map(p => ({ inline_data: { mime_type: p.mime, data: p.base64 } }));
+      const currentTitle = getCurrentProductName();
+      const nameVal = productNameHint.value.trim();
+      const codeVal = productCodeHint.value.trim();
+      let nameHint = currentTitle ? `\n참고로 현재 제품명은 "${currentTitle}"이야.` : '';
+      if(nameVal || codeVal){
+        nameHint += `\n사용자가 입력한 정보 — 제품명: "${nameVal||'(미입력)'}", 제품코드: "${codeVal||'(미입력)'}". 이 정보가 있다면 사진 추측보다 우선 신뢰하고, 필요하면 검색 결과를 참고해서 정확하게 작성해줘.`;
+      }
+      const prompt = `당신은 프리미엄 이커머스 브랜드의 카피라이터입니다. 첨부된 제품 사진들을 분석해서 매력적인 마케팅 카피를 작성하세요.${nameHint}
+다른 설명 없이 JSON 객체 하나만 출력하세요:
+{"headline":"임팩트 있는 한 줄 헤드라인 (20자 내외)","subheadline":"헤드라인을 보완하는 한 문장 (40자 내외)","usp":["짧은 핵심 강점 문구 5개, 각 10자 내외"],"description":"제품을 소개하는 2문단 분량의 설명. 각 문단은 3~4문장. 문단 사이는 빈 줄로 구분.","details":[{"heading":"핵심 특징 이름 (15자 내외, 예: 'QDC(Quick Dry Comfort) 기능성')","body":"그 특징을 설명하는 1~2문장 (60자 내외)"}]}
+details는 5개를 만들어줘. usp보다 구체적이고 풀어서 설명하는 버전이야.`;
+
+      const body = { contents:[{ parts:[ { text: prompt }, ...imageParts ] }] };
+      if(nameVal || codeVal) body.tools = [{ google_search: {} }];
+
+      const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_TEXT_MODEL}:generateContent?key=${encodeURIComponent(apiKey)}`, {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json' },
+        body: JSON.stringify(body)
+      });
+      if(!resp.ok) throw new Error('API 응답 오류 ('+resp.status+')');
+      const data = await resp.json();
+      let text = data?.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('') || '';
+      text = text.replace(/```json|```/g,'').trim();
+      const parsed = JSON.parse(text);
+
+      const headline = (parsed.headline||'').toString().trim();
+      const subheadline = (parsed.subheadline||'').toString().trim();
+      const usp = Array.isArray(parsed.usp) ? parsed.usp.map(s=>s.toString().trim()).filter(Boolean) : [];
+      const description = (parsed.description||'').toString().trim();
+      const details = Array.isArray(parsed.details)
+        ? parsed.details.map(d=>({ heading:(d.heading||'').toString().trim(), body:(d.body||'').toString().trim() })).filter(d=>d.heading||d.body)
+        : [];
+      lastAnalysisResult = { headline, subheadline, usp, description, details };
+
+      document.getElementById('apHeadline').textContent = headline || '-';
+      document.getElementById('apSub').textContent = subheadline || '-';
+      const uspEl = document.getElementById('apUsp');
+      uspEl.innerHTML = '';
+      usp.forEach(u=>{
+        const pill = document.createElement('span');
+        pill.className='pill'; pill.textContent=u;
+        uspEl.appendChild(pill);
+      });
+      document.getElementById('apDesc').textContent = description || '-';
+      const detailsEl = document.getElementById('apDetails');
+      detailsEl.innerHTML = '';
+      details.forEach(d=>{
+        const item = document.createElement('div');
+        item.className = 'ap-detail-item';
+        const h = document.createElement('div'); h.className='ap-detail-heading'; h.textContent = d.heading;
+        const b = document.createElement('div'); b.className='ap-detail-body'; b.textContent = d.body;
+        item.appendChild(h); item.appendChild(b);
+        detailsEl.appendChild(item);
+      });
+      card.style.display = 'block';
+
+      applyAnalysisResult(); // this becomes the default content for the detail page
+
+      statusEl.className='ai-status';
+      statusEl.textContent = '분석 완료! 이 내용이 상세페이지 기본 텍스트로 반영됐어요. "다음"을 눌러 결과를 확인하세요.';
+    }catch(err){
+      statusEl.className='ai-status error';
+      statusEl.textContent = err instanceof TypeError
+        ? '네트워크 요청에 실패했어요 (Failed to fetch). 인터넷 연결과 API 키를 확인해 주세요.'
+        : '분석에 실패했어요 (' + err.message + '). 다시 시도해 주세요.';
+    }finally{
+      btn.disabled = false;
+      analysisPromise = null;
+    }
+  }
+
+  function applyAnalysisResult(){
+    if(!lastAnalysisResult) return;
+    const { headline, usp, description, details } = lastAnalysisResult;
+    const { priceLine } = parseInfoText();
+    const lines = [headline, priceLine, ...usp].filter(Boolean);
+    state.infoText = lines.join('\n');
+    infoTextEl.value = state.infoText;
+    state.productDescription = description || '';
+    state.productDetails = Array.isArray(details) ? details : [];
+    renderLivePreview();
+    runTextAnalysis();
+    renderDetailPage();
+  }
+  document.getElementById('apApplyBtn').addEventListener('click', applyAnalysisResult);
+
+  document.getElementById('apCopyDescBtn').addEventListener('click', async ()=>{
+    if(!lastAnalysisResult || !lastAnalysisResult.description) return;
+    const btn = document.getElementById('apCopyDescBtn');
+    try{
+      await navigator.clipboard.writeText(lastAnalysisResult.description);
+      const original = btn.textContent;
+      btn.textContent = '복사됐어요!';
+      setTimeout(()=>{ btn.textContent = original; }, 1500);
+    }catch(e){
+      alert('복사에 실패했어요. 설명 텍스트를 직접 드래그해서 복사해 주세요.');
+    }
+  });
+
+  // ---- Image viewer (lightbox) ----
+  const imgViewerOverlay = document.getElementById('imgViewerOverlay');
+  const imgViewerImg = document.getElementById('imgViewerImg');
+  function openImgViewer(dataUrl){
+    imgViewerImg.src = dataUrl;
+    imgViewerOverlay.classList.add('open');
+  }
+  function closeImgViewer(){ imgViewerOverlay.classList.remove('open'); }
+  document.getElementById('imgViewerClose').addEventListener('click', closeImgViewer);
+  imgViewerOverlay.addEventListener('click', (e)=>{ if(e.target===imgViewerOverlay) closeImgViewer(); });
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeImgViewer(); });
+  document.getElementById('liveCanvas').addEventListener('click', ()=>{
+    openImgViewer(document.getElementById('liveCanvas').toDataURL('image/png'));
+  });
+
+  // ==================== Step 3: results ====================
+  document.getElementById('backTo3').addEventListener('click', ()=> goToStep(2));
+  document.getElementById('resetAll').addEventListener('click', ()=>{
+    if(!confirm('처음부터 다시 만드시겠어요? 입력한 내용이 모두 사라져요.')) return;
+    Object.assign(state, {
+      step:1, maxUnlocked:1, presetId:null,
+      productImages:[], primaryId:null, productImage:null, productBase64:null,
+      infoText:'', productDescription:'', productDetails:[], layoutStyle:'A'
+    });
+    document.querySelectorAll('.bg-card').forEach(el=>el.classList.remove('selected'));
+    document.querySelectorAll('.style-btn').forEach(b=> b.classList.toggle('active', b.dataset.style==='A'));
+    updateLayoutCap();
+    document.getElementById('toStep2').disabled = true;
+    document.getElementById('toStep3').disabled = true;
+    document.getElementById('uploadPreviewWrap').style.display = 'none';
+    document.getElementById('aiProductAnalysisCard').style.display = 'none';
+    document.getElementById('aiProductAnalysisStatus').textContent = '';
+    lastAnalysisResult = null;
+    document.getElementById('productGallery').innerHTML = '';
+    productNameHint.value = ''; productCodeHint.value = '';
+    fileInput.value = '';
+    infoTextEl.value = '';
+    resetAiComposites();
+    goToStep(1);
+  });
+
+  function downloadCanvas(canvas, filename){
+    canvas.toBlob(blob=>{
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 'image/png');
+  }
+  function safeName(){
+    const firstLine = (state.infoText||'').split('\n')[0] || '';
+    const base = firstLine.replace(/[^\w가-힣\-]/g,'').slice(0,20);
+    return base || 'ssaka_product';
+  }
+  function downloadDetailPage(){
+    const c = document.getElementById('detailCanvas');
+    renderDetailPage(false); // strip the 상세이미지N labels from the exported file
+    c.toBlob(blob=>{
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = safeName()+'_detail_'+state.layoutStyle+'_1000x'+c.height+'.png';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      renderDetailPage(true); // restore labels for on-screen editing view
+    }, 'image/png');
+  }
+  document.getElementById('downloadMain').addEventListener('click', downloadDetailPage);
+  document.getElementById('downloadMainTop').addEventListener('click', downloadDetailPage);
+  document.getElementById('downloadThumb').addEventListener('click', ()=>{
+    downloadCanvas(document.getElementById('thumbCanvas'), safeName()+'_thumb_1000x1000.png');
+  });
+
+  // ==================== Init ====================
+  customBgs = loadCustomBgs();
+  customBgs.forEach(bg => preloadCustomImage(bg));
+  buildBgGrid();
+  logos = loadLogos();
+  activeLogoId = logos.length ? logos[0].id : null;
+  if(activeLogoId){ preloadLogo(logos[0].dataUrl); }
+  renderLogoGrid();
+  const useWatermarkToggle = document.getElementById('useWatermarkToggle');
+  useWatermarkToggle.checked = state.useWatermark;
+  useWatermarkToggle.addEventListener('change', ()=>{
+    state.useWatermark = useWatermarkToggle.checked;
+    renderThumbCanvas();
+    renderDetailPage();
+  });
+  updateAutoGenHint();
+  updateSidebar();
+  ensureFonts();
+})();
+</script>
+</body>
+</html>
