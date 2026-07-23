@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -206,6 +205,22 @@
       <h2 class="text-2xl font-extrabold tracking-tight mb-2">어떤 무드로 연출할까요?</h2>
       <p class="text-sm text-slate-500">선택한 무드를 바탕으로 AI가 배경과 카피 톤을 함께 설계해요. 매장 사진 등 원하는 배경을 "+ 배경 추가"로 계속 등록해두고 골라 쓸 수도 있어요.</p>
     </div>
+
+    <div class="max-w-md mx-auto mb-8">
+      <label class="block text-sm font-semibold mb-2">생성 방식</label>
+      <div id="compositeModeToggle" class="grid grid-cols-2 gap-2 rounded-2xl border border-slate-200 bg-white p-1.5">
+        <button type="button" data-mode="A" class="composite-mode-btn text-left rounded-xl px-4 py-3 transition-colors">
+          <span class="block text-[13px] font-bold">A · AI 생성</span>
+          <span class="block text-[11px] mt-0.5 opacity-80">배경·제품을 AI가 새로 그려요 (기본)</span>
+        </button>
+        <button type="button" data-mode="B" class="composite-mode-btn text-left rounded-xl px-4 py-3 transition-colors">
+          <span class="block text-[13px] font-bold">B · 직접 합성</span>
+          <span class="block text-[11px] mt-0.5 opacity-80">누끼 딴 제품 사진을 그대로 얹어요</span>
+        </button>
+      </div>
+      <p class="text-[11px] text-slate-400 mt-2">B안은 AI 이미지 생성 없이 실제 제품 사진을 배경 위에 그대로 합성해요. 업로드한 대표 이미지가 투명 배경(PNG) 누끼컷일수록 결과가 깔끔해요.</p>
+    </div>
+
     <div id="moodGrid" class="grid grid-cols-2 lg:grid-cols-3 gap-4"></div>
 
     <div class="max-w-3xl mx-auto mt-10">
@@ -297,6 +312,14 @@
           <h3 class="font-mono text-[11px] tracking-[0.2em] text-slate-400 uppercase mb-3">대표 썸네일 · 1000×1000</h3>
           <div class="rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-card aspect-square">
             <img id="resultThumb" class="w-full h-full object-cover" alt="AI 생성 썸네일" />
+          </div>
+          <div id="thumbPositionControls" class="hidden mt-4">
+            <p class="text-[11px] font-semibold text-slate-500 mb-2">제품 위치</p>
+            <div class="grid grid-cols-3 gap-2">
+              <button type="button" data-position="top" class="thumb-position-btn rounded-lg py-2 text-[12px] font-semibold border transition-colors">위</button>
+              <button type="button" data-position="middle" class="thumb-position-btn rounded-lg py-2 text-[12px] font-semibold border transition-colors">중간</button>
+              <button type="button" data-position="bottom" class="thumb-position-btn rounded-lg py-2 text-[12px] font-semibold border transition-colors">아래</button>
+            </div>
           </div>
           <button id="downloadThumbBtn" class="mt-4 w-full flex items-center justify-center gap-2 bg-ink text-white rounded-xl py-3 text-sm font-semibold hover:bg-ink/90 transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="width:16px;height:16px">
@@ -461,8 +484,12 @@
     analysis: null,
     thumbnail: null,
     thumbnailIsComposite: false,
+    thumbnailIsTrueComposite: false,
+    thumbnailIsDirectComposite: false,
     usedImageModel: null,
     activeLayout: 'A',
+    compositeMode: 'A', // 'A' = AI 생성(기본) · 'B' = 직접 합성(AI 미사용, 제품 사진 그대로)
+    productPosition: 'middle', // B안 전용: 'top' | 'middle' | 'bottom'
   };
 
   /* =========================================================
@@ -482,6 +509,7 @@
   const modelCheckResult = $('#modelCheckResult');
   const clearModelOverrideBtn = $('#clearModelOverrideBtn');
 
+  const compositeModeToggle = $('#compositeModeToggle');
   const moodGrid      = $('#moodGrid');
   const logoGrid       = $('#logoGrid');
   const clearLogoSelectionBtn = $('#clearLogoSelectionBtn');
@@ -505,6 +533,7 @@
   const loadingSubText = $('#loadingSubText');
   const resultsView    = $('#resultsView');
   const resultThumb    = $('#resultThumb');
+  const thumbPositionControls = $('#thumbPositionControls');
   const copyPreview    = $('#copyPreview');
   const detailCaptureA = $('#detailCaptureA');
   const detailCaptureB = $('#detailCaptureB');
@@ -564,6 +593,34 @@
             width = Math.round(width * (maxDim / height));
             height = maxDim;
           }
+
+          // 흰 배경을 깔기 전에 먼저 투명하게 그려서, 실제로 투명 픽셀이 있는지 확인합니다.
+          // (이미 배경이 제거된 PNG를 업로드한 경우, 흰 배경을 깔아버리면 그 정보가 사라져서
+          //  이후 AI 배경 제거 단계를 다시 거쳐야 하고 결과도 덜 깔끔해질 수 있어요.)
+          const probeCanvas = document.createElement('canvas');
+          probeCanvas.width = width;
+          probeCanvas.height = height;
+          const pctx = probeCanvas.getContext('2d');
+          pctx.drawImage(img, 0, 0, width, height);
+
+          let hasTransparency = false;
+          try {
+            const sw = Math.min(80, width);
+            const sh = Math.min(80, height);
+            const data = pctx.getImageData(0, 0, sw, sh).data;
+            for (let i = 3; i < data.length; i += 4) {
+              if (data[i] < 250) { hasTransparency = true; break; }
+            }
+          } catch (err) {
+            hasTransparency = false;
+          }
+
+          if (hasTransparency) {
+            const dataUrl = probeCanvas.toDataURL('image/png');
+            resolve({ dataUrl, base64: dataUrl.split(',')[1], mime: 'image/png', hasTransparency: true });
+            return;
+          }
+
           const canvas = document.createElement('canvas');
           canvas.width = width;
           canvas.height = height;
@@ -572,7 +629,7 @@
           ctx.fillRect(0, 0, width, height);
           ctx.drawImage(img, 0, 0, width, height);
           const dataUrl = canvas.toDataURL('image/jpeg', quality);
-          resolve({ dataUrl, base64: dataUrl.split(',')[1], mime: 'image/jpeg' });
+          resolve({ dataUrl, base64: dataUrl.split(',')[1], mime: 'image/jpeg', hasTransparency: false });
         };
         img.onerror = () => reject(new Error('이미지를 불러올 수 없습니다.'));
         img.src = e.target.result;
@@ -831,6 +888,23 @@
   const CUSTOM_UPLOAD_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" style="width:20px;height:20px">
       <path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0 3 3m-3-3-3 3M6.75 19.5a4.5 4.5 0 0 1-1.41-8.775 5.25 5.25 0 0 1 10.233-2.33 3 3 0 0 1 3.758 3.848A3.752 3.752 0 0 1 18 19.5H6.75Z" />
     </svg>`;
+
+  // A/B 생성 방식 토글 버튼의 선택 상태를 반영합니다.
+  function renderCompositeModeToggle() {
+    compositeModeToggle.querySelectorAll('.composite-mode-btn').forEach((btn) => {
+      const active = btn.dataset.mode === state.compositeMode;
+      btn.className = `composite-mode-btn text-left rounded-xl px-4 py-3 transition-colors ${
+        active ? 'bg-brand-600 text-white' : 'bg-transparent text-slate-500 hover:bg-slate-50'
+      }`;
+    });
+  }
+
+  compositeModeToggle.addEventListener('click', (e) => {
+    const btn = e.target.closest('.composite-mode-btn');
+    if (!btn) return;
+    state.compositeMode = btn.dataset.mode;
+    renderCompositeModeToggle();
+  });
 
   function renderMoodGrid() {
     const presetCards = MOOD_PRESETS.map((m, i) => `
@@ -1330,6 +1404,8 @@
     state.thumbnail = null;
     state.usedImageModel = null;
     state.thumbnailIsComposite = false;
+    state.thumbnailIsTrueComposite = false;
+    state.thumbnailIsDirectComposite = false;
     productNameInput.value = '';
     productCodeInput.value = '';
     step2AnalysisPreview.classList.add('hidden');
@@ -1365,10 +1441,10 @@
 2. 상세페이지 상단에 들어갈 임팩트 있는 헤드카피 1개와, 이를 보완하는 서브카피 1개를 작성하세요.
 3. 무신사·29CM 스타일의 세련되고 신뢰감 있는 에디토리얼 톤으로 상세 설명문(2~3문단, 문단 사이는 줄바꿈으로 구분)을 작성하세요.
 4. 이미지에서 관찰되는 실제 특징을 바탕으로 제품 특징(feature)을 3~4개, 각각 제목과 1~2문장 설명으로 정리하세요.
-5. 선택된 무드와 제품의 실제 형태·색상·재질 특징을 결합하여, 이미지 생성 AI(Imagen)가 이해할 수 있는 상세한 영문 이미지 프롬프트를 작성하세요.
+5. 선택된 무드와 제품의 실제 형태·색상·재질 특징을 결합하여, 이미지 생성 AI가 이해할 수 있는 상세한 영문 이미지 프롬프트를 작성하세요.
    - 제품의 실루엣, 색상, 소재 질감을 구체적으로 묘사하세요.
    - 인물의 얼굴, 텍스트, 로고, 워터마크는 절대 포함하지 마세요.
-   - 정사각형(1:1) 구도의 전문 제품 사진 스타일로 묘사하세요.
+   - 정사각형(1:1) 구도의 전문 제품 사진 스타일로 묘사하세요.${mood.isCustom ? '\n   - 배경/장면 묘사는 절대 포함하지 마세요. 배경은 별도의 레퍼런스 이미지로 대체되므로, 오직 제품 자체(실루엣·색상·소재·질감)만 영문으로 묘사하세요.' : ''}
 
 반드시 지정된 JSON 스키마 형식으로만 응답하세요.`;
   }
@@ -1747,27 +1823,42 @@
   // 배경만 새로 그리도록 지시하는 "합성형" 프롬프트입니다.
   function buildProductCompositePrompt(analysis, mood) {
     const backgroundInstruction = mood.isCustom
-      ? 'For the setting, use the second attached reference image as the actual environment — match its background, walls/floor, lighting direction and color temperature, and any display fixtures such as a clothing rack, hanger, or shelf, so the product looks like it was genuinely photographed in that exact space. Do not reproduce any product, person, text, or logo that appears in that reference image — only borrow its environment, fixtures and lighting. Cast a realistic contact shadow and any reflections consistent with that scene\'s light source, and match the camera angle, perspective and scale so the product sits naturally in the space instead of looking like a flat cutout pasted on top.'
-      : `For the background, use this style: ${mood.style}. Cast a realistic contact shadow consistent with the described lighting so the product looks naturally placed in the scene rather than pasted on.`;
+      ? 'You MUST completely replace the original background from the first image — do not keep any part of it. For the new setting, use the second attached reference image as the actual environment — match its background, walls/floor, lighting direction and color temperature, and any display fixtures such as a clothing rack, hanger, or shelf, so the product looks like it was genuinely photographed in that exact space. Do not reproduce any product, person, text, or logo that appears in that reference image — only borrow its environment, fixtures and lighting. Cast a realistic contact shadow and any reflections consistent with that scene\'s light source, and match the camera angle, perspective and scale so the product sits naturally in the space instead of looking like a flat cutout pasted on top.'
+      : `You MUST completely replace the original background from the first image — do not keep any part of it. For the new background, use this style: ${mood.style}. Cast a realistic contact shadow consistent with the described lighting so the product looks naturally placed in the scene rather than pasted on.`;
     return [
       'The first attached image shows the exact real product. Preserve its precise shape, color, material texture, proportions and every visible detail exactly as shown — do not alter, redesign or reinterpret the product in any way.',
       'Place this exact product into a new professional product photography scene, blending it in as naturally and photorealistically as possible — this should read as one single cohesive photograph, never as a cutout composited on top of a background.',
       backgroundInstruction,
       'Match perspective, scale, lighting direction, color temperature and shadow softness precisely between the product and the surrounding scene.',
       analysis.imagePrompt ? `Additional scene notes: ${analysis.imagePrompt}` : '',
-      'Centered composition, square 1:1 frame, photorealistic, ultra sharp focus, high detail, no text, no watermark, no logo, no human face, no added props.',
+      'The product must be large and have strong visual presence, occupying roughly 65-75% of the frame\'s vertical height. Position it in the lower portion of the square frame, leaving open space above for headline text placement.',
+      'Square 1:1 frame, photorealistic, ultra sharp focus, high detail, no text, no watermark, no logo, no human face, no added props.',
     ].filter(Boolean).join(' ');
   }
 
   // predict(Imagen) 모드 전용: 이미지 첨부가 불가능하므로 텍스트 설명만으로 연출컷을 그립니다.
+  const PRODUCT_SIZE_POSITION_TEXT = 'the product must be large and have strong visual presence, occupying roughly 65-75% of the frame\'s vertical height, positioned in the lower portion of the square frame with open space above for headline text';
   function buildImagenPrompt(analysis, mood, hasAttachedReference) {
-    const styleText = hasAttachedReference
-      ? 'use the attached reference image only for background composition, lighting, color palette and overall mood — do not reproduce any product, person, text or logo that appears in the reference image'
-      : mood.style;
+    if (hasAttachedReference) {
+      return [
+        analysis.imagePrompt,
+        'use the attached reference image only for background composition, lighting, color palette and overall mood — do not reproduce any product, person, text or logo that appears in the reference image',
+        `professional e-commerce product photography, ${PRODUCT_SIZE_POSITION_TEXT}, square 1:1 frame, photorealistic, ultra sharp focus, high detail, no text, no watermark, no logo, no human face`,
+      ].filter(Boolean).join(', ');
+    }
+    if (mood.isCustom && mood.style) {
+      // 커스텀 레퍼런스(텍스트 전용 모드)는 배경 지시를 맨 앞에 강하게 못박아야, 뒤에 붙는
+      // 다른 문구에 묻혀서 "배경이 안 바뀐 것처럼" 나오는 걸 방지할 수 있습니다.
+      return [
+        `The background/setting MUST be exactly this: ${mood.style}. This is a strict requirement — do not use any other background.`,
+        analysis.imagePrompt,
+        `professional e-commerce product photography, ${PRODUCT_SIZE_POSITION_TEXT}, square 1:1 frame, photorealistic, ultra sharp focus, high detail, no text, no watermark, no logo, no human face`,
+      ].filter(Boolean).join(' ');
+    }
     return [
       analysis.imagePrompt,
-      styleText,
-      'professional e-commerce product photography, centered composition, square 1:1 frame, photorealistic, ultra sharp focus, high detail, no text, no watermark, no logo, no human face',
+      mood.style,
+      `professional e-commerce product photography, ${PRODUCT_SIZE_POSITION_TEXT}, square 1:1 frame, photorealistic, ultra sharp focus, high detail, no text, no watermark, no logo, no human face`,
     ].filter(Boolean).join(', ');
   }
 
@@ -1817,6 +1908,227 @@
     return `data:${mime};base64,${inline.data}`;
   }
 
+  // 제품 사진에서 배경만 제거하고 투명 배경 PNG로 만듭니다. (chat 모드 전용)
+  // 레퍼런스 배경을 AI가 재해석해서 다시 그리지 않고, 실제 배경 사진을 그대로 쓰기 위한 용도입니다.
+  async function removeProductBackground(productImage, modelId) {
+    const prompt = 'Remove the background from this product photo completely. Keep the exact same product — unchanged shape, color, material, and every detail — and output it isolated on a fully transparent background (PNG with alpha channel). Do not add any new background, floor, shadow, or reflection. Do not alter the product in any way, only remove what is behind it.';
+    const parts = [
+      { text: prompt },
+      { inline_data: { mime_type: productImage.mime, data: productImage.base64 } },
+    ];
+    const res = await postJson(`${API_BASE}/models/${modelId}:generateContent?key=${encodeURIComponent(state.apiKey)}`, {
+      contents: [{ role: 'user', parts }],
+      generationConfig: { responseModalities: ['TEXT', 'IMAGE'] },
+    }, 60000);
+
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      throw new Error((errBody?.error?.message || `배경 제거 요청 실패 (HTTP ${res.status})`) + ` (모델: ${modelId}, chat)`);
+    }
+    const data = await res.json();
+    const resParts = data?.candidates?.[0]?.content?.parts || [];
+    const imagePart = resParts.find((p) => p.inlineData || p.inline_data);
+    const inline = imagePart?.inlineData || imagePart?.inline_data;
+    if (!inline?.data) throw new Error('배경 제거 결과가 비어있습니다.');
+    const mime = inline.mimeType || inline.mime_type || 'image/png';
+    return `data:${mime};base64,${inline.data}`;
+  }
+
+  // 레퍼런스 배경 사진을 픽셀 그대로 재사용하고, 배경이 제거된 제품 컷아웃을 그 위에 얹습니다.
+  // (AI가 배경을 다시 그리지 않으므로 사용자가 올린 배경 이미지가 100% 그대로 유지됩니다.)
+  function compositeOntoReferenceBackground(backgroundDataUrl, cutoutDataUrl, size = 1000) {
+    return new Promise((resolve, reject) => {
+      const bgImg = new Image();
+      bgImg.onload = () => {
+        const cutImg = new Image();
+        cutImg.onload = () => {
+          try {
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+
+            // 1. 배경: 레퍼런스 이미지를 자르지 않고 꽉 채움 (cover)
+            const bgScale = Math.max(size / bgImg.naturalWidth, size / bgImg.naturalHeight);
+            const bgW = bgImg.naturalWidth * bgScale;
+            const bgH = bgImg.naturalHeight * bgScale;
+            ctx.drawImage(bgImg, (size - bgW) / 2, (size - bgH) / 2, bgW, bgH);
+
+            // 2. 제품 배치 계산: 가로·세로 둘 다 캔버스 안에 들어오도록 비율을 유지한 채 중앙에 맞춥니다.
+            //    (높이 기준으로만 맞추면 옆으로 넓은 제품, 예: 선글라스가 캔버스 폭을 넘어가서
+            //     양옆이 잘려나갈 수 있었어요. 가로·세로 중 더 빡빡한 쪽에 맞춰 축소합니다.)
+            const maxProdH = size * 1.0;
+            const maxProdW = size * 1.0;
+            const prodScale = Math.min(maxProdH / cutImg.naturalHeight, maxProdW / cutImg.naturalWidth);
+            const prodW = cutImg.naturalWidth * prodScale;
+            const prodH = cutImg.naturalHeight * prodScale;
+            const px = (size - prodW) / 2;
+            const py = (size - prodH) / 2;
+            const groundY = py + prodH;
+
+            // 3. 제품이 놓일 자리 주변만 국소적으로 샘플링해서 밝기를 추정합니다. 실패해도 기본값으로 계속 진행해요.
+            let avgBrightness = 0.55;
+            try {
+              const sw = 24, sh = 24;
+              const sampleCanvas = document.createElement('canvas');
+              sampleCanvas.width = sw;
+              sampleCanvas.height = sh;
+              const sctx = sampleCanvas.getContext('2d');
+              const sampleH = Math.max(1, Math.min(size - py, prodH));
+              sctx.drawImage(canvas, px, py, prodW, sampleH, 0, 0, sw, sh);
+              const data = sctx.getImageData(0, 0, sw, sh).data;
+              let sum = 0, count = 0;
+              for (let i = 0; i < data.length; i += 4) {
+                sum += (data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114) / 255;
+                count++;
+              }
+              if (count > 0) avgBrightness = sum / count;
+            } catch (e) {
+              // 샘플링 실패는 무시하고 기본 밝기값으로 계속 진행합니다.
+            }
+
+            // 4. 바닥에 닿는 타원형 컨택 섀도우 (단일 레이어 — 여러 겹을 쌓지 않아 렌더링이 안정적입니다)
+            ctx.save();
+            ctx.filter = `blur(${(size * 0.02).toFixed(1)}px)`;
+            ctx.fillStyle = 'rgba(0,0,0,0.3)';
+            ctx.beginPath();
+            ctx.ellipse(size / 2, groundY, prodW * 0.34, size * 0.024, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+
+            // 5. 배경 밝기에 맞춰 톤을 살짝 보정한 제품을, 은은한 그림자와 함께 배치
+            const brightnessAdj = (0.9 + avgBrightness * 0.25).toFixed(2);
+            ctx.save();
+            ctx.filter = `brightness(${brightnessAdj}) saturate(0.97)`;
+            ctx.shadowColor = 'rgba(0,0,0,0.2)';
+            ctx.shadowBlur = size * 0.018;
+            ctx.shadowOffsetY = size * 0.008;
+            ctx.drawImage(cutImg, px, py, prodW, prodH);
+            ctx.restore();
+
+            resolve(canvas.toDataURL('image/png'));
+          } catch (err) {
+            reject(err instanceof Error ? err : new Error('이미지 합성 중 오류가 발생했습니다.'));
+          }
+        };
+        cutImg.onerror = () => reject(new Error('제품 컷아웃 이미지를 불러오지 못했습니다.'));
+        cutImg.src = cutoutDataUrl;
+      };
+      bgImg.onerror = () => reject(new Error('레퍼런스 배경 이미지를 불러오지 못했습니다.'));
+      bgImg.src = backgroundDataUrl;
+    });
+  }
+
+  // 프리셋 무드의 swatch(CSS 그라디언트 문자열)에서 색상을 뽑아내 캔버스 배경으로 그립니다.
+  // (AI 호출 없이 B안 배경을 만들기 위한 용도 — swatch 안의 hex 색상들을 순서대로 이어 그립니다.)
+  function renderSwatchBackground(ctx, swatchCss, size) {
+    const colors = (swatchCss && swatchCss.match(/#[0-9A-Fa-f]{3,8}/g)) || ['#F3F4F6', '#E2E4E9'];
+    const grad = ctx.createLinearGradient(0, 0, size, size); // 135deg 대각선 방향을 근사합니다.
+    if (colors.length === 1) {
+      grad.addColorStop(0, colors[0]);
+      grad.addColorStop(1, colors[0]);
+    } else {
+      colors.forEach((c, i) => grad.addColorStop(i / (colors.length - 1), c));
+    }
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, size, size);
+  }
+
+  // 투명 배경 PNG에서 실제 제품이 그려진 영역(불투명 픽셀의 바운딩 박스)만 찾아냅니다.
+  // 파일 자체는 정사각형(1000×1000)이어도 실제 제품은 그 안에 여백을 두고 작게 그려진
+  // 경우가 많은데, 이 여백까지 통째로 위/아래로 움직이면 시각적으로 거의 차이가 없어
+  // 보입니다. 그래서 "제품이 실제로 차지하는 영역"만 잘라내 그 영역을 기준으로 배치합니다.
+  function getOpaqueBoundingBox(img) {
+    const w = img.naturalWidth, h = img.naturalHeight;
+    const full = { x: 0, y: 0, width: w, height: h };
+    try {
+      const probe = document.createElement('canvas');
+      probe.width = w;
+      probe.height = h;
+      const pctx = probe.getContext('2d');
+      pctx.drawImage(img, 0, 0);
+      const data = pctx.getImageData(0, 0, w, h).data;
+      const alphaThreshold = 10;
+      let minX = w, minY = h, maxX = -1, maxY = -1;
+      for (let y = 0; y < h; y++) {
+        const rowOffset = y * w;
+        for (let x = 0; x < w; x++) {
+          if (data[(rowOffset + x) * 4 + 3] > alphaThreshold) {
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
+          }
+        }
+      }
+      if (maxX < 0) return full; // 완전히 투명한 이미지라면 원본 그대로 사용
+      return { x: minX, y: minY, width: maxX - minX + 1, height: maxY - minY + 1 };
+    } catch (err) {
+      return full; // 픽셀 접근이 막혀있는 등 예외 상황이면 원본 전체를 그대로 사용
+    }
+  }
+
+  // B안: AI 이미지 생성 없이, 업로드한 제품 사진을 그대로 배경 위에 얹습니다.
+  // - 커스텀(업로드) 무드: 등록된 배경 사진을 그대로 사용
+  // - 프리셋 무드: swatch 그라디언트를 캔버스로 그려서 배경으로 사용
+  // position: 'top' | 'middle' | 'bottom' — 프레임 안에서 제품을 배치할 높이
+  function compositeDirectOntoBackground(mood, productDataUrl, position = 'middle', size = 1000) {
+    return new Promise((resolve, reject) => {
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+
+      const drawProduct = () => {
+        const prodImg = new Image();
+        prodImg.onload = () => {
+          try {
+            // 여백을 뺀 "실제 제품 영역"을 썸네일 폭(size)의 90%에 맞춰 채웁니다
+            // — 좌우로 5%씩 살짝 여백을 두고 가운데 정렬, 원본 비율은 그대로 유지한 채 폭 기준으로 스케일합니다.
+            // 위/중간/아래 위치는 썸네일 세로 크기(size) 기준 앵커(또는 크롭) 기준점입니다:
+            // 제품이 캔버스보다 작으면 정렬 위치가 되고, 크면 어느 부분을 보여줄지 정합니다.
+            const box = getOpaqueBoundingBox(prodImg);
+            const PRODUCT_WIDTH_RATIO = 0.90;
+            const prodW = size * PRODUCT_WIDTH_RATIO;
+            const prodScale = prodW / box.width;
+            const prodH = box.height * prodScale;
+            const px = (size - prodW) / 2;
+            let py;
+            if (position === 'top') py = 0;
+            else if (position === 'bottom') py = size - prodH;
+            else py = (size - prodH) / 2;
+
+            // 업로드하신 제품 컷은 이미 실제 촬영된 그림자가 포함돼 있는 경우가 많아서,
+            // 여기서 별도의 인위적인 그림자를 추가로 그리지 않습니다 (추가하면 그림자가 두 겹으로 겹쳐 보여요).
+            ctx.drawImage(prodImg, box.x, box.y, box.width, box.height, px, py, prodW, prodH);
+
+            resolve(canvas.toDataURL('image/png'));
+          } catch (err) {
+            reject(err instanceof Error ? err : new Error('이미지 합성 중 오류가 발생했습니다.'));
+          }
+        };
+        prodImg.onerror = () => reject(new Error('제품 이미지를 불러오지 못했습니다.'));
+        prodImg.src = productDataUrl;
+      };
+
+      if (mood && mood.isCustom && mood.referenceImage) {
+        const bgImg = new Image();
+        bgImg.onload = () => {
+          const bgScale = Math.max(size / bgImg.naturalWidth, size / bgImg.naturalHeight);
+          const bgW = bgImg.naturalWidth * bgScale;
+          const bgH = bgImg.naturalHeight * bgScale;
+          ctx.drawImage(bgImg, (size - bgW) / 2, (size - bgH) / 2, bgW, bgH);
+          drawProduct();
+        };
+        bgImg.onerror = () => reject(new Error('배경 이미지를 불러오지 못했습니다.'));
+        bgImg.src = mood.referenceImage.dataUrl;
+      } else {
+        renderSwatchBackground(ctx, mood && mood.swatch, size);
+        drawProduct();
+      }
+    });
+  }
+
   async function generateThumbnail(prompt, modelInfo, images) {
     return modelInfo.mode === 'chat'
       ? generateThumbnailChat(prompt, modelInfo.id, images)
@@ -1833,6 +2145,9 @@
     } else if (stage === 'style') {
       loadingText.textContent = 'Styling';
       loadingSubText.textContent = '레퍼런스 이미지의 배경 스타일을 분석하고 있어요...';
+    } else if (stage === 'cutout') {
+      loadingText.textContent = 'Cutting Out';
+      loadingSubText.textContent = '제품만 깔끔하게 배경을 제거하고 있어요...';
     } else if (stage === 'image') {
       loadingText.textContent = 'Generating';
       loadingSubText.textContent = '선택한 무드에 맞는 연출컷을 그리고 있어요...';
@@ -1871,36 +2186,74 @@
       const analysis = await analyzeProduct(mood, orderedImages);
       state.analysis = analysis;
 
-      const modelInfo = await resolveImageModel();
+      let thumbDataUrl;
+      let isTrueComposite = false;
+      let isDirectComposite = false;
+      let modelInfo = null;
+      let usedModelLabel;
 
-      let prompt;
-      let attachImages = null;
-      if (modelInfo.mode === 'chat') {
-        // chat 모드: 실제 대표 이미지를 그대로 첨부해 "제품은 그대로, 배경만 새로" 합성합니다.
-        attachImages = [state.images[state.mainIndex]];
-        if (mood.isCustom) attachImages.push(mood.referenceImage);
-        prompt = buildProductCompositePrompt(analysis, mood);
-      } else {
-        // predict(Imagen) 모드: 이미지 첨부가 불가능해 텍스트 설명만으로 연출합니다.
-        let hasAttachedReference = false;
-        if (mood.isCustom && !mood.style) {
-          setLoading('style');
-          const styleDescription = await describeReferenceStyle(mood.referenceImage);
-          const refObj = state.customReferences.find((r) => r.id === mood.refId);
-          if (refObj) refObj.styleDescription = styleDescription;
-          saveCustomReferences();
-          mood.style = styleDescription;
+      if (state.compositeMode === 'B') {
+        // B안: AI 이미지 생성 호출 없이, 업로드한 제품 사진을 선택한 배경 위에 그대로 합성합니다.
+        setLoading('image');
+        const mainImg = state.images[state.mainIndex];
+        if (!mainImg.hasTransparency) {
+          showToast('대표 이미지가 투명 배경(누끼) PNG가 아니에요. 원본 배경이 함께 보일 수 있어요.');
         }
-        prompt = buildImagenPrompt(analysis, mood, hasAttachedReference);
+        thumbDataUrl = await compositeDirectOntoBackground(mood, mainImg.dataUrl, state.productPosition);
+        isDirectComposite = true;
+        usedModelLabel = '직접 합성 (AI 미사용)';
+      } else {
+        modelInfo = await resolveImageModel();
+
+        if (mood.isCustom && modelInfo.mode === 'chat') {
+          // 진짜 합성: 레퍼런스 배경 사진은 픽셀 그대로 재사용하고, 제품만 배경을 제거해서
+          // 그 위에 얹습니다. AI가 장면 전체를 다시 그리지 않으므로 배경이 절대 바뀌지 않아요.
+          const mainImg = state.images[state.mainIndex];
+          let cutoutDataUrl;
+          if (mainImg.hasTransparency) {
+            // 이미 배경이 투명하게 제거된 PNG를 올리셨다면, 다시 AI로 잘라내지 않고 그대로 씁니다.
+            // (한 번 더 처리하면 오히려 경계가 덜 깔끔해질 수 있어요.)
+            cutoutDataUrl = mainImg.dataUrl;
+          } else {
+            setLoading('cutout');
+            cutoutDataUrl = await removeProductBackground(mainImg, modelInfo.id);
+          }
+          setLoading('image');
+          thumbDataUrl = await compositeOntoReferenceBackground(mood.referenceImage.dataUrl, cutoutDataUrl);
+          isTrueComposite = true;
+        } else {
+          let prompt;
+          let attachImages = null;
+          if (modelInfo.mode === 'chat') {
+            // chat 모드: 실제 대표 이미지를 그대로 첨부해 "제품은 그대로, 배경만 새로" 연출합니다.
+            attachImages = [state.images[state.mainIndex]];
+            prompt = buildProductCompositePrompt(analysis, mood);
+          } else {
+            // predict(Imagen) 모드: 이미지 첨부가 불가능해 텍스트 설명만으로 연출합니다.
+            let hasAttachedReference = false;
+            if (mood.isCustom && !mood.style) {
+              setLoading('style');
+              const styleDescription = await describeReferenceStyle(mood.referenceImage);
+              const refObj = state.customReferences.find((r) => r.id === mood.refId);
+              if (refObj) refObj.styleDescription = styleDescription;
+              saveCustomReferences();
+              mood.style = styleDescription;
+            }
+            prompt = buildImagenPrompt(analysis, mood, hasAttachedReference);
+          }
+          setLoading('image');
+          thumbDataUrl = await generateThumbnail(prompt, modelInfo, attachImages);
+        }
+        usedModelLabel = `${modelInfo.id} (${isTrueComposite ? '배경 그대로 합성' : modelInfo.mode === 'chat' ? 'Gemini 이미지생성' : 'Imagen'})`;
       }
 
-      setLoading('image');
-      const thumbDataUrl = await generateThumbnail(prompt, modelInfo, attachImages);
       state.thumbnail = thumbDataUrl;
-      state.thumbnailIsComposite = modelInfo.mode === 'chat';
-      state.usedImageModel = `${modelInfo.id} (${modelInfo.mode === 'chat' ? 'Gemini 이미지생성' : 'Imagen'})`;
+      state.thumbnailIsComposite = modelInfo ? modelInfo.mode === 'chat' : false;
+      state.thumbnailIsTrueComposite = isTrueComposite;
+      state.thumbnailIsDirectComposite = isDirectComposite;
+      state.usedImageModel = usedModelLabel;
 
-      // 선택된 워터마크 로고가 있으면 대표 이미지에 합성합니다.
+      // 선택된 워터마크 로고가 있으면 대표 이미지(A/B 둘 다 있다면 둘 다)에 합성합니다.
       if (state.selectedLogoId) {
         const logo = state.logos.find((l) => l.id === state.selectedLogoId);
         if (logo) {
@@ -1930,9 +2283,16 @@
   function renderResults() {
     resultThumb.src = state.thumbnail;
     $('#usedModelLabel').textContent = state.usedImageModel || '-';
-    $('#thumbnailDisclaimer').textContent = state.thumbnailIsComposite
+    $('#thumbnailDisclaimer').textContent = state.thumbnailIsDirectComposite
+      ? '* 업로드하신 제품 사진을 AI 재해석 없이 그대로 배경 위에 합성했어요. "제품 위치" 버튼으로 위/중간/아래를 즉시 바꿔볼 수 있어요.'
+      : state.thumbnailIsTrueComposite
+      ? '* 등록하신 배경 사진을 그대로 쓰고, 제품만 AI로 배경을 제거해서 얹었어요. 배경은 원본 그대로예요.'
+      : state.thumbnailIsComposite
       ? '* 업로드하신 대표 이미지의 제품은 그대로 유지하고, 배경만 AI로 새로 연출했어요.'
       : '* 이 모델에서는 실제 사진을 반영할 수 없어 AI가 텍스트만으로 새로 그린 연출컷이에요. 실제 제품과 디테일이 다를 수 있어요.';
+
+    thumbPositionControls.classList.toggle('hidden', !state.thumbnailIsDirectComposite);
+    if (state.thumbnailIsDirectComposite) updateThumbPositionButtons();
 
     const a = state.analysis;
     copyPreview.innerHTML = `
@@ -1957,8 +2317,52 @@
     detailCaptureB.innerHTML = buildLayoutB(a, detailImages);
     detailCaptureC.innerHTML = buildLayoutC(a, detailImages);
     detailCaptureD.innerHTML = buildLayoutD(a, detailImages);
-    setActiveLayout('A');
+    setActiveLayout(state.activeLayout || 'A');
   }
+
+  // B안(직접 합성) 결과에서 "위/중간/아래" 버튼의 선택 상태를 반영합니다.
+  function updateThumbPositionButtons() {
+    thumbPositionControls.querySelectorAll('.thumb-position-btn').forEach((btn) => {
+      const active = btn.dataset.position === state.productPosition;
+      btn.className = `thumb-position-btn rounded-lg py-2 text-[12px] font-semibold border transition-colors ${
+        active ? 'bg-brand-600 text-white border-brand-600' : 'bg-white text-slate-500 border-slate-200 hover:border-brand-300'
+      }`;
+    });
+  }
+
+  // B안 결과의 제품 위치를 즉시 다시 계산합니다. AI 호출 없이 캔버스로만 재합성하므로 매우 빠릅니다.
+  async function regenerateDirectComposite(position) {
+    const mood = getSelectedMood();
+    if (!mood || !state.thumbnailIsDirectComposite) return;
+    state.productPosition = position;
+    updateThumbPositionButtons();
+    try {
+      const mainImg = state.images[state.mainIndex];
+      let thumbDataUrl = await compositeDirectOntoBackground(mood, mainImg.dataUrl, state.productPosition);
+      if (state.selectedLogoId) {
+        const logo = state.logos.find((l) => l.id === state.selectedLogoId);
+        if (logo) {
+          try {
+            thumbDataUrl = await applyWatermark(thumbDataUrl, logo.dataUrl);
+          } catch (err) {
+            console.error('[SSAKA STUDIO] 워터마크 적용 실패:', err);
+          }
+        }
+      }
+      state.thumbnail = thumbDataUrl;
+      renderResults();
+    } catch (err) {
+      showToast('제품 위치 변경 중 문제가 발생했어요: ' + err.message);
+    }
+  }
+
+  thumbPositionControls.addEventListener('click', (e) => {
+    const btn = e.target.closest('.thumb-position-btn');
+    if (!btn) return;
+    const position = btn.dataset.position;
+    if (position === state.productPosition) return;
+    regenerateDirectComposite(position);
+  });
 
   // 레이아웃 A — 매거진형: 풀블리드 히어로 이미지 + 알아보기 쉬운 좌우 교차 상세컷 배치
   function buildLayoutA(a, detailImages) {
@@ -2267,6 +2671,7 @@
    * 13. 초기화
    * =======================================================*/
   loadApiKey();
+  renderCompositeModeToggle();
   renderMoodGrid();
   renderLogoGrid();
   renderUploadGrid();
