@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -325,6 +324,32 @@
     background:var(--accent);color:#fff;font-size:12px;font-weight:700;
     padding:8px 14px;border-radius:8px;display:inline-flex;align-items:center;
   }
+
+  .pos-slider-row{margin-top:12px;background:var(--card);border:1px solid var(--card-line);border-radius:var(--radius-sm);padding:12px 14px;}
+  .pos-slider-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+  .pos-slider-head label{font-size:12.5px;font-weight:600;color:var(--text-dim);}
+  .pos-number-input{
+    width:56px;padding:5px 6px;border:1px solid var(--card-line);border-radius:6px;
+    font-family:var(--font-data);font-weight:700;font-size:13px;text-align:center;color:var(--accent);
+  }
+  .pos-slider-track-row{display:flex;align-items:center;gap:10px;}
+  .pos-edge-label{font-size:11px;color:var(--text-dim);flex-shrink:0;}
+  input[type="range"]{
+    -webkit-appearance:none;appearance:none;flex:1;height:6px;border-radius:999px;
+    background:linear-gradient(90deg, var(--accent) 0%, var(--accent) var(--pos-pct,50%), var(--card-line) var(--pos-pct,50%), var(--card-line) 100%);
+    outline:none;cursor:pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb{
+    -webkit-appearance:none;appearance:none;width:20px;height:20px;border-radius:50%;
+    background:var(--accent);border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.3);cursor:grab;
+  }
+  input[type="range"]::-webkit-slider-thumb:active{cursor:grabbing;}
+  input[type="range"]::-moz-range-thumb{
+    width:20px;height:20px;border-radius:50%;background:var(--accent);border:3px solid #fff;
+    box-shadow:0 1px 4px rgba(0,0,0,.3);cursor:grab;
+  }
+  input[type="range"]::-moz-range-track{height:6px;border-radius:999px;background:var(--card-line);}
+  input[type="range"]::-moz-range-progress{height:6px;border-radius:999px;background:var(--accent);}
   .icon-btn{padding:6px 10px;flex-shrink:0;}
   .ai-status{font-size:11.5px;color:var(--text-dim);margin-top:6px;min-height:14px;}
   .ai-status.error{color:var(--danger);}
@@ -561,25 +586,27 @@
       <!-- STEP 3 -->
       <section class="panel" id="panel-3">
         <h2>완성됐어요</h2>
-        <p class="lead">아래 <b>"이미지 생성하기"</b> 버튼을 누르면 썸네일과 상세페이지를 AI로 한 번에 자연스럽게 합성해요. 추가 사진이 있으면 1단계 배경 대신 AI가 사진마다 어울리는 컨셉을 직접 정해요 (사진이 많을수록 시간이 더 걸려요). 썸네일은 항상 1단계 배경과 합성돼요.</p>
+        <p class="lead"><b>썸네일</b>은 업로드하신 제품 사진을 1단계 배경 위에 즉시 합성해서 바로 보여드려요 (AI 호출 없음). <b>상세페이지</b>는 아래 "이미지 생성하기" 버튼을 누르면 AI로 자연스럽게 합성해요 — 추가 사진이 있으면 1단계 배경 대신 AI가 사진마다 어울리는 컨셉을 직접 정해요 (사진이 많을수록 시간이 더 걸려요).</p>
 
         <div class="result-grid">
           <div class="result-card thumb-card">
-            <h3>썸네일</h3>
+            <h3>대표 썸네일</h3>
             <p class="cap">1000 × 1000 · 텍스트 없이 대표 이미지만 깔끔하게 · 목록용</p>
-            <div class="ai-row">
-              <span class="ai-badge">✨ AI 합성</span>
-              <button class="btn btn-ghost btn-sm icon-btn" id="thumbRegen" title="AI 합성 다시 생성">↻ 다시 생성</button>
-            </div>
-            <div class="ai-status" id="aiStatusThumb"></div>
-            <div class="canvas-wrap" id="thumbCanvasWrap" style="margin-top:12px;">
-              <canvas id="thumbCanvas" width="1000" height="1000"></canvas>
-              <div class="loading-overlay" id="thumbLoadingOverlay">
-                <div class="spinner"></div>
-                <div class="loading-text" id="thumbLoadingText">AI가 합성하고 있어요...</div>
+            <div class="pos-slider-row">
+              <div class="pos-slider-head">
+                <label for="thumbPosSlider">제품 위치</label>
+                <input type="number" id="thumbPosInput" class="pos-number-input" min="0" max="100" step="1" value="50">
+              </div>
+              <div class="pos-slider-track-row">
+                <span class="pos-edge-label">위</span>
+                <input type="range" id="thumbPosSlider" min="0" max="100" step="1" value="50">
+                <span class="pos-edge-label">아래</span>
               </div>
             </div>
-            <button type="button" class="btn btn-warm gen-images-btn" style="width:100%;margin-top:14px;">🖼️ 이미지 생성하기 (AI 합성)</button>
+            <div class="canvas-wrap" id="thumbCanvasWrap" style="margin-top:12px;">
+              <canvas id="thumbCanvas" width="1000" height="1000"></canvas>
+            </div>
+            <p class="cap" style="margin-top:8px;">업로드하신 제품 사진을 AI 재해석 없이 그대로 배경 위에 합성했어요. '제품 위치' 슬라이더를 드래그해서 위/아래 위치를 즉시 바꿔보실 수 있어요.</p>
             <button class="btn btn-primary" id="downloadThumb">다운로드</button>
           </div>
           <div class="result-card">
@@ -666,6 +693,7 @@
     productDescription: '',  // long-form copy from AI 분석 미리보기, rendered as its own block in the detail page
     productDetails: [],      // [{heading, body}] richer per-feature detail call-outs, paired with extra photos / leftover cards
     useWatermark: true,
+    thumbPosition: 50, // 0 (top) ~ 100 (bottom), continuous vertical placement for the thumbnail's Canvas render
     layoutStyle: 'A'      // 'A' magazine, 'B' card grid, 'C' square grid, 'D' impact/poster
   };
 
@@ -674,20 +702,13 @@
   const HERO_DIM = { w:1000, h:1250 };
   const SQUARE_DIM = { w:1000, h:1000 };
 
-  // Thumbnail card (independent, always just shows the primary image)
-  const aiCache = { thumb: null };
-  const viewState = { thumb: 'canvas' };
-
   // Detail page (whole-page AI mode) — one cache entry per section id ('hero' or an image id)
   const aiSectionCache = {};
   let detailViewMode = 'canvas'; // 'canvas' | 'ai'
 
   function resetAiComposites(){
-    aiCache.thumb = null;
-    viewState.thumb = 'canvas';
     Object.keys(aiSectionCache).forEach(k=> delete aiSectionCache[k]);
     detailViewMode = 'canvas';
-    const t = document.getElementById('aiStatusThumb'); if(t){ t.textContent=''; t.className='ai-status'; }
     const d = document.getElementById('aiStatusDetail'); if(d){ d.textContent=''; d.className='ai-status'; }
   }
 
@@ -876,12 +897,112 @@
     drawContactShadow(ctx, w/2, floorY, dw*0.5);
     ctx.drawImage(img,dx,dy,dw,dh);
   }
+  // Removes a near-uniform background from an uploaded product photo by flood-filling inward from the
+  // image edges (so it only clears the connected background region, not similarly-colored parts of the
+  // product itself), then makes those pixels transparent. Falls back to the original image untouched on
+  // any error (e.g. tainted canvas) — never breaks the upload.
+  function removeBackgroundFromImage(img){
+    return new Promise((resolve)=>{
+      try{
+        const w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        const imgData = ctx.getImageData(0, 0, w, h);
+        const data = imgData.data;
+
+        const pixelAt = (x,y)=>{ const i=(y*w+x)*4; return [data[i],data[i+1],data[i+2]]; };
+        const corners = [pixelAt(0,0), pixelAt(w-1,0), pixelAt(0,h-1), pixelAt(w-1,h-1)];
+        const bg = [0,1,2].map(c => Math.round(corners.reduce((s,p)=>s+p[c],0)/4));
+
+        const TOLERANCE = 32;
+        const isBg = (x,y)=>{
+          const i=(y*w+x)*4;
+          const dr=data[i]-bg[0], dg=data[i+1]-bg[1], db=data[i+2]-bg[2];
+          return Math.sqrt(dr*dr+dg*dg+db*db) < TOLERANCE;
+        };
+
+        const visited = new Uint8Array(w*h);
+        const queue = [];
+        for(let x=0;x<w;x++){ queue.push(x,0); queue.push(x,h-1); }
+        for(let y=0;y<h;y++){ queue.push(0,y); queue.push(w-1,y); }
+        let qi = 0;
+        while(qi < queue.length){
+          const x = queue[qi++], y = queue[qi++];
+          if(x<0||y<0||x>=w||y>=h) continue;
+          const idx = y*w+x;
+          if(visited[idx]) continue;
+          if(!isBg(x,y)) continue;
+          visited[idx] = 1;
+          queue.push(x+1,y, x-1,y, x,y+1, x,y-1);
+        }
+
+        for(let idx=0; idx<w*h; idx++){
+          if(visited[idx]) data[idx*4+3] = 0;
+        }
+
+        ctx.putImageData(imgData, 0, 0);
+        const outImg = new Image();
+        outImg.onload = ()=> resolve({ img: outImg, dataUrl: canvas.toDataURL('image/png') });
+        outImg.onerror = ()=> resolve({ img, dataUrl: null });
+        outImg.src = canvas.toDataURL('image/png');
+      }catch(err){
+        resolve({ img, dataUrl: null }); // couldn't process — keep the original as-is
+      }
+    });
+  }
+
+  let opaqueBoxCache = { img: null, box: null };
+  function getOpaqueBoundingBox(img){
+    if(opaqueBoxCache.img === img) return opaqueBoxCache.box; // avoid re-scanning every frame while dragging
+    const w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
+    const full = { x:0, y:0, width:w, height:h };
+    let box;
+    try{
+      const probe = document.createElement('canvas');
+      probe.width = w; probe.height = h;
+      const pctx = probe.getContext('2d');
+      pctx.drawImage(img, 0, 0);
+      const data = pctx.getImageData(0, 0, w, h).data;
+      const alphaThreshold = 10;
+      let minX=w, minY=h, maxX=-1, maxY=-1;
+      for(let y=0; y<h; y++){
+        const rowOffset = y*w;
+        for(let x=0; x<w; x++){
+          if(data[(rowOffset+x)*4+3] > alphaThreshold){
+            if(x<minX) minX=x; if(x>maxX) maxX=x;
+            if(y<minY) minY=y; if(y>maxY) maxY=y;
+          }
+        }
+      }
+      box = maxX<0 ? full : { x:minX, y:minY, width:maxX-minX+1, height:maxY-minY+1 };
+    }catch(err){
+      box = full; // pixel access blocked (e.g. tainted canvas) — fall back to full bounds
+    }
+    opaqueBoxCache = { img, box };
+    return box;
+  }
+  function drawProductAtPosition(ctx, img, w, h, posValue){
+    // thumbnail-only. Scales the product to 95% of the frame WIDTH based on its actual opaque content
+    // (ignoring any blank margin in the source photo — expected input is an already-cutout, transparent
+    // product photo). 0=top-aligned, 50=centered, 100=bottom-aligned. No synthetic shadow is added —
+    // uploaded product photos usually already carry their own real shadow, and adding another one doubles it up.
+    const pos = Math.max(0, Math.min(100, typeof posValue==='number' ? posValue : 50)) / 100;
+    const box = getOpaqueBoundingBox(img);
+    const PRODUCT_WIDTH_RATIO = 0.95;
+    const prodW = w * PRODUCT_WIDTH_RATIO;
+    const scale = prodW / box.width;
+    const prodH = box.height * scale;
+    const dx = (w - prodW) / 2;
+    const dy = pos * (h - prodH);
+    ctx.drawImage(img, box.x, box.y, box.width, box.height, dx, dy, prodW, prodH);
+  }
   function drawImageCover(ctx, img, w, h){
     const scale = Math.max(w/img.width, h/img.height);
     const dw = img.width*scale, dh = img.height*scale;
     ctx.drawImage(img, (w-dw)/2, (h-dh)/2, dw, dh);
   }
-
   // ==================== Detail page: section model ====================
   // Builds the ordered list of image sections for the detail page:
   // hero (primary) + one section per additional uploaded photo, in upload order.
@@ -1026,13 +1147,22 @@
     const ctx = canvas.getContext('2d');
     const w = canvas.width, h = canvas.height;
     ctx.clearRect(0,0,w,h);
-    if(viewState.thumb==='ai' && aiCache.thumb){
-      drawImageCover(ctx, aiCache.thumb, w, h);
-    } else {
-      drawBackground(ctx, w, h);
-      if(state.productImage){ drawProductCentered(ctx, state.productImage, w, h); }
-      else { drawPlaceholderProduct(ctx, w, h); }
+    try{
+      drawBackground(ctx, w, h); // Step 1's background — always drawn the same way, in both modes, never touched
+    }catch(err){
+      console.error('[thumbnail] background draw failed, falling back to a plain fill:', err);
+      ctx.fillStyle = '#E9EAEC';
+      ctx.fillRect(0,0,w,h);
     }
+    const productSource = state.productImage;
+    if(productSource){
+      try{
+        drawProductAtPosition(ctx, productSource, w, h, state.thumbPosition);
+      }catch(err){
+        console.error('[thumbnail] product draw failed:', err);
+      }
+    }
+    else { drawPlaceholderProduct(ctx, w, h); }
     drawLogoMark(ctx, w, h);
   }
 
@@ -1776,32 +1906,43 @@
     if(overlay) overlay.classList.toggle('show', show);
   }
 
-  // ---- Thumbnail: always shows the AI result once available ----
-  async function generateThumbAI(){
-    const statusEl = document.getElementById('aiStatusThumb');
-    if(!state.productImage){ statusEl.className='ai-status error'; statusEl.textContent='먼저 2단계에서 제품 이미지를 업로드해 주세요.'; return; }
-    const apiKey = checkApiKeyOrWarn(statusEl);
-    if(!apiKey) return;
-    viewState.thumb = 'ai';
-    statusEl.className='ai-status'; statusEl.textContent='AI가 합성하고 있어요... (10~20초 정도 걸려요)';
-    setLoadingOverlay('thumb', true, 'AI가 합성하고 있어요...');
-    try{
-      const primaryEntry = state.productImages.find(p=>p.id===state.primaryId);
-      const img = await callGeminiComposite(apiKey, primaryEntry, SQUARE_DIM, getCurrentProductName());
-      aiCache.thumb = img;
-      renderThumbCanvas();
-      statusEl.className='ai-status'; statusEl.textContent='AI 합성 완료! 마음에 안 들면 ↻ 다시 생성을 눌러보세요.';
-    }catch(err){
-      statusEl.className='ai-status error';
-      statusEl.textContent = err instanceof TypeError
-        ? '네트워크 요청에 실패했어요 (Failed to fetch). 인터넷 연결, API 키, 광고 차단·보안 확장 프로그램을 확인해 주세요.'
-        : '합성에 실패했어요 (' + err.message + '). ↻로 다시 시도해 주세요.';
-      viewState.thumb='canvas'; renderThumbCanvas();
-    }finally{
-      setLoadingOverlay('thumb', false);
+  // ---- Thumbnail product position: 0(top)~100(bottom) slider + number field, continuous, debounced while dragging ----
+  (function setupThumbPositionControl(){
+    const slider = document.getElementById('thumbPosSlider');
+    const numInput = document.getElementById('thumbPosInput');
+
+    function updateTrackFill(v){
+      slider.style.setProperty('--pos-pct', v+'%');
     }
-  }
-  document.getElementById('thumbRegen').addEventListener('click', generateThumbAI);
+    function applyValue(rawValue){
+      let value = Math.round(Number(rawValue));
+      if(Number.isNaN(value)) value = state.thumbPosition;
+      value = Math.max(0, Math.min(100, value));
+      state.thumbPosition = value;
+      slider.value = value;
+      updateTrackFill(value);
+      if(document.activeElement !== numInput){ numInput.value = value; }
+      try{
+        renderThumbCanvas();
+      }catch(err){
+        console.error('[thumb position] render failed:', err);
+      }
+    }
+
+    slider.addEventListener('input', ()=>{ numInput.value = slider.value; applyValue(slider.value); });
+    numInput.addEventListener('input', ()=>{
+      if(numInput.value === '') return; // still clearing the field — wait for a real value
+      applyValue(numInput.value);
+    });
+    numInput.addEventListener('keydown', (e)=>{
+      if(e.key==='Enter'){ e.preventDefault(); numInput.blur(); }
+    });
+    numInput.addEventListener('blur', ()=>{
+      if(numInput.value === '') numInput.value = state.thumbPosition;
+    });
+
+    updateTrackFill(state.thumbPosition);
+  })();
 
   // ---- Detail page: whole-page AI generation (hero + every extra section), always preferred once available ----
   async function generateWholePageAI(){
@@ -1857,7 +1998,7 @@
       const allBtns = document.querySelectorAll('.gen-images-btn');
       allBtns.forEach(b=> b.disabled = true);
       try{
-        await Promise.all([ generateThumbAI(), generateWholePageAI() ]);
+        await generateWholePageAI(); // thumbnail no longer needs an AI call — it's composited instantly
       } finally {
         allBtns.forEach(b=> b.disabled = false);
       }
@@ -2103,12 +2244,23 @@
       reader.onload = ()=>{
         const dataUrl = reader.result;
         const img = new Image();
-        img.onload = ()=> resolve({
-          id: 'p_'+Date.now()+Math.random().toString(36).slice(2,6),
-          img, dataUrl,
-          base64: dataUrl.split(',')[1],
-          mime: file.type || 'image/jpeg'
-        });
+        img.onload = async ()=>{
+          let finalImg = img, finalDataUrl = dataUrl, finalMime = file.type || 'image/jpeg';
+          try{
+            const cleaned = await removeBackgroundFromImage(img);
+            if(cleaned && cleaned.dataUrl){
+              finalImg = cleaned.img;
+              finalDataUrl = cleaned.dataUrl;
+              finalMime = 'image/png'; // transparency requires PNG regardless of the original format
+            }
+          }catch(e){ /* background removal failed — fall back to the original upload untouched */ }
+          resolve({
+            id: 'p_'+Date.now()+Math.random().toString(36).slice(2,6),
+            img: finalImg, dataUrl: finalDataUrl,
+            base64: finalDataUrl.split(',')[1],
+            mime: finalMime
+          });
+        };
         img.onerror = reject;
         img.src = dataUrl;
       };
@@ -2119,13 +2271,18 @@
 
   async function handleFiles(fileList){
     const files = Array.from(fileList);
-    for(const file of files){
+    const subTxt = document.querySelector('#dropzone .sub-txt');
+    const originalSubTxt = subTxt ? subTxt.textContent : '';
+    for(let i=0;i<files.length;i++){
+      const file = files[i];
+      if(subTxt) subTxt.textContent = `배경 제거 중이에요... (${i+1}/${files.length})`;
       try{
         const entry = await readFileAsEntry(file);
         state.productImages.push(entry);
         if(!state.primaryId) setPrimary(entry.id, { silent:true });
       }catch(e){ /* skip invalid file */ }
     }
+    if(subTxt) subTxt.textContent = originalSubTxt;
     document.getElementById('uploadPreviewWrap').style.display = 'block';
     document.getElementById('toStep3').disabled = state.productImages.length===0;
     renderGallery();
@@ -2140,6 +2297,7 @@
     state.productImage = entry.img;
     state.productBase64 = entry.base64;
     state.productMime = entry.mime;
+    try{ getOpaqueBoundingBox(entry.img); }catch(e){ /* pre-warm only, safe to ignore if it fails here */ }
     if(!opts || !opts.silent){ renderGallery(); resetAiComposites(); }
   }
 
@@ -2253,7 +2411,7 @@
   document.getElementById('toStep3').addEventListener('click', async ()=>{
     await ensureFonts();
     if(analysisPromise) await analysisPromise; // let an in-flight "AI 분석 미리보기" finish first, so its result (product name, etc.) is used for image generation
-    Promise.all([ generateThumbAI(), generateWholePageAI() ]); // start AI compositing right as "다음" is clicked
+    generateWholePageAI(); // start AI compositing for the detail page right as "다음" is clicked — thumbnail is instant, no call needed
     goToStep(3);
   });
 
@@ -2531,11 +2689,15 @@ details는 5개를 만들어줘. usp보다 구체적이고 풀어서 설명하�
     Object.assign(state, {
       step:1, maxUnlocked:1, presetId:null,
       productImages:[], primaryId:null, productImage:null, productBase64:null,
-      infoText:'', productDescription:'', productDetails:[], layoutStyle:'A'
+      infoText:'', productDescription:'', productDetails:[], layoutStyle:'A', thumbPosition:50
     });
     document.querySelectorAll('.bg-card').forEach(el=>el.classList.remove('selected'));
     document.querySelectorAll('.style-btn').forEach(b=> b.classList.toggle('active', b.dataset.style==='A'));
     updateLayoutCap();
+    const thumbPosSliderEl = document.getElementById('thumbPosSlider');
+    const thumbPosInputEl = document.getElementById('thumbPosInput');
+    thumbPosSliderEl.value = 50; thumbPosInputEl.value = 50;
+    thumbPosSliderEl.style.setProperty('--pos-pct', '50%');
     document.getElementById('toStep2').disabled = true;
     document.getElementById('toStep3').disabled = true;
     document.getElementById('uploadPreviewWrap').style.display = 'none';
