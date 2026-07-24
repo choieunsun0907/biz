@@ -2489,8 +2489,10 @@
         ${a.usp.map((u) => `<span class="px-5 py-2.5 rounded-full bg-brand-50 text-brand-700 font-semibold text-base" style="background-color:#EEF2FF;">${escapeHtml(u)}</span>`).join('')}
       </div>
 
-      <div class="mx-auto py-16 px-10 text-center" style="max-width:720px; background-color:#ffffff;">
-        <p class="text-lg leading-relaxed text-slate-600" style="white-space:pre-line;">${escapeHtml(a.description)}</p>
+      <div class="text-center" style="background-color:#ffffff;">
+        <div class="mx-auto py-16 px-10" style="max-width:720px;">
+          <p class="text-lg leading-relaxed text-slate-600" style="white-space:pre-line;">${escapeHtml(a.description)}</p>
+        </div>
       </div>
 
       <div class="px-16 pb-20 space-y-20" style="background-color:#ffffff;">
@@ -2609,8 +2611,10 @@
 
       ${remainingBlock}
 
-      <div class="mx-auto pb-14 px-10 text-center border-t border-slate-100 pt-14" style="max-width:640px; background-color:#ffffff;">
-        <p class="text-base leading-relaxed text-slate-500" style="white-space:pre-line;">${escapeHtml(a.description)}</p>
+      <div class="text-center border-t border-slate-100" style="background-color:#ffffff;">
+        <div class="mx-auto pb-14 px-10 pt-14" style="max-width:640px;">
+          <p class="text-base leading-relaxed text-slate-500" style="white-space:pre-line;">${escapeHtml(a.description)}</p>
+        </div>
       </div>
     `;
   }
@@ -2738,6 +2742,12 @@
         backgroundColor: '#ffffff',
         width: 1000,
         windowWidth: 1000,
+        onclone: (clonedDoc, clonedTarget) => {
+          // body 기본 배경(#F6F7FB 연회색)이 어떤 경로로든 비쳐 보이는 걸 막기 위해,
+          // 복제된 문서와 캡처 대상 자체의 배경을 흰색으로 한 번 더 못박습니다.
+          clonedDoc.body.style.background = '#ffffff';
+          clonedTarget.style.background = '#ffffff';
+        },
       });
       const url = canvasToJpeg(canvas, 0.92);
       downloadDataUrl(url, `${state.productName || 'ssaka'}_detail_${state.activeLayout}.jpg`);
