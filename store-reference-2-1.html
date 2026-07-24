@@ -1,0 +1,2765 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SSAKA STUDIO — AI 상세페이지 생성기</title>
+
+<!-- Fonts: Pretendard(한글 UI/본문) + JetBrains Mono(라벨/스탯 넘버) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@1.3.9/dist/web/static/pretendard.css" />
+
+<!-- Tailwind CSS (CDN) -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          ink: '#0B1220',
+          brand: {
+            50:  '#EEF2FF',
+            100: '#DCE4FF',
+            200: '#B9C9FF',
+            400: '#5B7CFF',
+            500: '#3A5CFF',
+            600: '#2451FF',
+            700: '#1B3ECC',
+          },
+          pitch: '#16A34A',
+          mist: '#F6F7FB',
+        },
+        fontFamily: {
+          sans: ['Pretendard', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
+          mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+        },
+        boxShadow: {
+          card: '0 1px 2px rgba(11,18,32,0.04), 0 8px 24px -8px rgba(11,18,32,0.08)',
+        },
+      },
+    },
+  };
+</script>
+
+<!-- html2canvas: DOM → 이미지 변환 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<style>
+  html { scroll-behavior: smooth; }
+  body { font-family: 'Pretendard','-apple-system','sans-serif'; background: #F6F7FB; }
+
+  /* 접근성: 모션 최소화 환경 */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+
+  ::-webkit-scrollbar { height: 8px; width: 8px; }
+  ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 999px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+
+  .step-panel { animation: fadeSlideIn .4s ease both; }
+  @keyframes fadeSlideIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .mood-card[data-selected="true"] {
+    outline: 2px solid #2451FF;
+    outline-offset: -2px;
+    box-shadow: 0 8px 24px -8px rgba(36,81,255,0.35);
+  }
+  .mood-card[data-selected="true"] .mood-check { opacity: 1; transform: scale(1); }
+  .mood-check { opacity: 0; transform: scale(.6); transition: all .18s ease; }
+
+  .main-radio { position: absolute; opacity: 0; pointer-events: none; }
+
+  /* 제품 위치 슬라이더: 브랜드 컬러의 트랙/썸 커스텀 스타일 */
+  .thumb-position-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    border-radius: 999px;
+    background: linear-gradient(to right, #2451FF var(--pos, 50%), #E2E8F0 var(--pos, 50%));
+    outline: none;
+  }
+  .thumb-position-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px; height: 18px; border-radius: 999px;
+    background: #ffffff; border: 2px solid #2451FF;
+    box-shadow: 0 1px 3px rgba(11,18,32,0.25);
+    cursor: grab; margin-top: 0;
+  }
+  .thumb-position-slider::-webkit-slider-thumb:active { cursor: grabbing; }
+  .thumb-position-slider::-moz-range-track {
+    height: 4px; border-radius: 999px; background: #E2E8F0;
+  }
+  .thumb-position-slider::-moz-range-progress {
+    height: 4px; border-radius: 999px; background: #2451FF;
+  }
+  .thumb-position-slider::-moz-range-thumb {
+    width: 18px; height: 18px; border-radius: 999px;
+    background: #ffffff; border: 2px solid #2451FF;
+    box-shadow: 0 1px 3px rgba(11,18,32,0.25);
+    cursor: grab;
+  }
+
+  .upload-slot[draggable="true"] { cursor: grab; }
+  .upload-slot.dragging { opacity: 0.35; }
+  .upload-slot.drop-target {
+    outline: 2px dashed #2451FF;
+    outline-offset: 2px;
+    background: #EEF2FF;
+  }
+  .drag-handle {
+    position: absolute; top: 8px; left: 8px; z-index: 5;
+    width: 22px; height: 22px; border-radius: 8px;
+    background: rgba(255,255,255,0.9); color: #64748B;
+    display: flex; align-items: center; justify-content: center;
+    pointer-events: none;
+  }
+
+  .spinner {
+    width: 56px; height: 56px; border-radius: 999px;
+    border: 3px solid #DCE4FF; border-top-color: #2451FF;
+    animation: spin 0.9s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .toast { animation: toastIn .25s ease both; }
+  @keyframes toastIn { from { opacity:0; transform: translateY(8px) scale(.98);} to {opacity:1; transform:none;} }
+
+  input:focus-visible, button:focus-visible, [tabindex]:focus-visible {
+    outline: 2px solid #2451FF; outline-offset: 2px;
+  }
+
+  /* 상세페이지 캡처 영역: 실제 다운로드 결과물과 동일한 고정 폭 */
+  #detailCaptureA, #detailCaptureB, #detailCaptureC, #detailCaptureD { font-family: 'Pretendard','-apple-system','sans-serif'; }
+</style>
+</head>
+<body class="text-ink antialiased">
+
+<!-- ================= 상단 헤더: 브랜드 + API Key ================= -->
+<header class="sticky top-0 z-40 bg-white/85 backdrop-blur border-b border-slate-200">
+  <div class="max-w-6xl mx-auto px-5 sm:px-8 py-4 flex items-center gap-4">
+    <div class="flex items-center gap-2.5 shrink-0">
+      <div class="w-9 h-9 rounded-xl bg-ink flex items-center justify-center">
+        <span class="font-mono text-brand-400 text-sm font-bold">S</span>
+      </div>
+      <div class="leading-tight">
+        <p class="font-extrabold text-[15px] tracking-tight">SSAKA STUDIO</p>
+        <p class="font-mono text-[10px] tracking-[0.2em] text-slate-400 uppercase">AI Detail Page Generator</p>
+      </div>
+    </div>
+
+    <div class="flex-1"></div>
+
+    <div class="relative">
+      <button id="settingsToggleBtn" type="button" aria-label="API 설정 열기"
+        class="relative w-10 h-10 rounded-xl border border-slate-200 bg-white flex items-center justify-center text-slate-500 hover:text-brand-600 hover:border-brand-300 transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="width:19px;height:19px">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 0 1 0 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.02-.397-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 0 1 0-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+        </svg>
+        <span id="settingsKeyDot" class="hidden absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-pitch ring-2 ring-white"></span>
+      </button>
+
+      <div id="apiSettingsPanel" class="hidden absolute right-0 top-12 z-50 w-[min(92vw,380px)] rounded-2xl border border-slate-200 bg-white shadow-lg p-4">
+        <label for="apiKeyInput" class="block text-[11px] font-semibold text-slate-500 mb-1">
+          Google AI Studio API Key
+        </label>
+        <div class="relative flex items-center gap-2">
+          <div class="relative flex-1">
+            <input id="apiKeyInput" type="password" autocomplete="off" spellcheck="false"
+              placeholder="AIzaSy..."
+              class="w-full rounded-xl border border-slate-200 pl-3.5 pr-10 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-600/60 focus:border-brand-600" />
+            <button id="toggleKeyBtn" type="button" aria-label="API 키 표시/숨김"
+              class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+              <svg id="eyeIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" class="w-4.5 h-4.5" style="width:18px;height:18px">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+              </svg>
+            </button>
+          </div>
+          <span id="apiKeyStatus" class="hidden shrink-0 text-[11px] font-semibold text-pitch bg-pitch/10 px-2.5 py-1.5 rounded-lg">저장됨</span>
+          <button id="resetApiKeyBtn" type="button" class="shrink-0 text-[11px] font-semibold text-slate-400 hover:text-red-500 px-2.5 py-1.5 rounded-lg hover:bg-red-50">초기화</button>
+        </div>
+        <p class="text-[11px] text-slate-400 mt-1.5">
+          키는 이 브라우저에만 저장되며 외부로 전송되지 않아요 ·
+          <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" class="text-brand-600 hover:underline">키 발급받기</a>
+        </p>
+        <details id="advancedDetails" class="mt-2">
+          <summary class="text-[11px] text-slate-400 hover:text-slate-600 cursor-pointer select-none">고급 설정 (이미지 생성 모델 직접 지정)</summary>
+          <div class="mt-2 space-y-2">
+            <div class="flex gap-1.5">
+              <input id="imageModelOverrideInput" type="text" autocomplete="off" spellcheck="false"
+                placeholder="예: imagen-4.0-generate-001 (비워두면 사용 가능한 모델을 자동으로 찾아요)"
+                class="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-[11px] font-mono bg-white focus:outline-none focus:ring-2 focus:ring-brand-600/60 focus:border-brand-600" />
+              <button id="clearModelOverrideBtn" type="button" class="shrink-0 px-2.5 rounded-lg border border-slate-200 text-[11px] text-slate-400 hover:text-red-500 hover:border-red-300">지우기</button>
+            </div>
+            <p class="text-[10px] text-slate-400">이미지 생성이 "모델을 찾을 수 없다"는 오류로 계속 실패하면, 이 계정에서 사용 가능한 모델명을 직접 입력해보세요.</p>
+            <button id="checkModelsBtn" type="button" class="text-[11px] font-semibold text-brand-600 hover:underline">이 API 키로 사용 가능한 이미지 모델 확인하기 →</button>
+            <div id="modelCheckResult" class="hidden rounded-lg border border-slate-200 bg-slate-50 p-3 text-[11px] leading-relaxed max-h-48 overflow-y-auto"></div>
+          </div>
+        </details>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ================= 스텝퍼(시그니처 요소: 스코어보드 형 진행 표시) ================= -->
+<div class="max-w-lg mx-auto px-6 pt-10 pb-2">
+  <div id="stepperNav" class="relative flex items-center justify-between">
+    <div class="absolute left-5 right-5 top-5 h-[2px] bg-slate-200"></div>
+    <div id="stepperFill" class="absolute left-5 top-5 h-[2px] bg-brand-600 transition-all duration-500" style="width:0%"></div>
+    <div class="step-node relative z-10 flex flex-col items-center gap-2" data-step="1" role="button" tabindex="-1">
+      <div class="node-circle w-10 h-10 rounded-full flex items-center justify-center font-mono text-[13px] font-semibold bg-white border-2 transition-colors">01</div>
+      <span class="node-label font-mono text-[10px] tracking-[0.2em] uppercase transition-colors">STYLE</span>
+    </div>
+    <div class="step-node relative z-10 flex flex-col items-center gap-2" data-step="2" role="button" tabindex="-1">
+      <div class="node-circle w-10 h-10 rounded-full flex items-center justify-center font-mono text-[13px] font-semibold bg-white border-2 transition-colors">02</div>
+      <span class="node-label font-mono text-[10px] tracking-[0.2em] uppercase transition-colors">PRODUCT</span>
+    </div>
+    <div class="step-node relative z-10 flex flex-col items-center gap-2" data-step="3" role="button" tabindex="-1">
+      <div class="node-circle w-10 h-10 rounded-full flex items-center justify-center font-mono text-[13px] font-semibold bg-white border-2 transition-colors">03</div>
+      <span class="node-label font-mono text-[10px] tracking-[0.2em] uppercase transition-colors">RESULT</span>
+    </div>
+  </div>
+</div>
+
+<main class="max-w-6xl mx-auto px-5 sm:px-8 py-8 pb-28">
+
+  <!-- ============ STEP 1: 배경 무드 선택 ============ -->
+  <section id="step1" class="step-panel">
+    <div class="mb-7 text-center">
+      <h2 class="text-2xl font-extrabold tracking-tight mb-2">어떤 무드로 연출할까요?</h2>
+      <p class="text-sm text-slate-500">선택한 무드를 바탕으로 AI가 배경과 카피 톤을 함께 설계해요. 매장 사진 등 원하는 배경을 "+ 배경 추가"로 계속 등록해두고 골라 쓸 수도 있어요.</p>
+    </div>
+
+    <div class="max-w-md mx-auto mb-8">
+      <p class="text-[11px] text-slate-400 text-center">AI 이미지 생성 없이 실제 제품 사진을 배경 위에 그대로 합성해요. 업로드한 대표 이미지가 투명 배경(PNG) 누끼컷일수록 결과가 깔끔해요.</p>
+    </div>
+
+    <div id="moodGrid" class="grid grid-cols-2 lg:grid-cols-3 gap-4"></div>
+
+    <div class="max-w-3xl mx-auto mt-10">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-sm font-semibold">워터마크 로고 <span class="text-slate-400 font-normal">(선택)</span></h3>
+        <button id="clearLogoSelectionBtn" type="button" class="text-[11px] text-slate-400 hover:text-slate-600 underline underline-offset-2">워터마크 사용 안 함</button>
+      </div>
+      <div id="logoGrid" class="flex flex-wrap gap-3"></div>
+      <p class="text-[11px] text-slate-400 mt-2">로고를 등록하고 선택하면, 생성된 대표 이미지 우측 하단에 자동으로 워터마크가 찍혀요. 여러 개 등록해두고 원하는 걸 골라 쓸 수 있어요.</p>
+    </div>
+  </section>
+
+  <!-- ============ STEP 2: 제품 정보 + 이미지 업로드 ============ -->
+  <section id="step2" class="step-panel hidden">
+    <div class="mb-7 text-center">
+      <h2 class="text-2xl font-extrabold tracking-tight mb-2">제품 정보를 입력해 주세요</h2>
+      <p class="text-sm text-slate-500">대표 이미지 1장은 필수이고, 상세 이미지는 최대 4장까지 자유롭게 추가할 수 있어요.</p>
+    </div>
+
+    <div class="max-w-3xl mx-auto grid sm:grid-cols-2 gap-5 mb-10">
+      <div>
+        <div class="flex items-center justify-between mb-2">
+          <label class="block text-sm font-semibold">제품명 <span class="text-red-500">*</span></label>
+          <button id="suggestNameBtn" type="button" class="text-[11px] font-semibold text-brand-600 hover:underline disabled:text-slate-300 disabled:no-underline">✨ AI 추천</button>
+        </div>
+        <input id="productNameInput" type="text" placeholder="대표 이미지를 올리면 AI가 자동으로 채워드려요"
+          class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-600/60 focus:border-brand-600" />
+        <p id="nameSuggestStatus" class="hidden text-[11px] text-brand-600 mt-1.5"></p>
+      </div>
+      <div>
+        <label class="block text-sm font-semibold mb-2">제품코드</label>
+        <input id="productCodeInput" type="text" placeholder="예: SSK-2026-GX01"
+          class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-600/60 focus:border-brand-600" />
+      </div>
+    </div>
+
+    <div class="max-w-3xl mx-auto">
+      <div class="flex items-center justify-between mb-3">
+        <label class="block text-sm font-semibold">제품 이미지 (대표 1장 필수 + 상세 최대 4장)</label>
+        <span id="uploadCount" class="font-mono text-[11px] text-slate-400">0 / 5</span>
+      </div>
+      <div id="uploadGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4"></div>
+      <p class="text-[11px] text-slate-400 mt-3">대표 이미지 1장은 꼭 올려주세요. 상세 이미지는 있는 만큼만 올려도 괜찮아요 (0~4장).</p>
+    </div>
+
+    <div class="max-w-3xl mx-auto mt-10">
+      <div class="flex items-center justify-between mb-3">
+        <label class="block text-sm font-semibold">AI 분석 미리보기 <span class="text-slate-400 font-normal">(선택)</span></label>
+        <button id="manualAnalyzeBtn" type="button" class="flex items-center gap-1.5 text-[12px] font-semibold text-brand-600 hover:underline disabled:text-slate-300 disabled:no-underline">
+          🔍 AI 분석 미리보기
+        </button>
+      </div>
+      <div id="step2AnalysisPreview" class="hidden rounded-2xl border border-slate-200 bg-white p-6 space-y-4"></div>
+      <p class="text-[11px] text-slate-400 mt-2">이미지 생성 전에 AI가 작성할 카피만 먼저 확인해볼 수 있어요. 실제 이미지 생성은 "AI로 생성하기"를 눌러야 진행돼요.</p>
+    </div>
+  </section>
+
+  <!-- ============ STEP 3: 로딩 / 결과 ============ -->
+  <section id="step3" class="step-panel hidden">
+    <div id="loadingView" class="hidden flex flex-col items-center justify-center py-28 text-center">
+      <div class="spinner mb-8"></div>
+      <p id="loadingText" class="font-mono text-xs tracking-[0.25em] text-brand-600 uppercase mb-2">Analyzing</p>
+      <p id="loadingSubText" class="text-slate-500 text-sm mb-1">제품 이미지를 분석하고 있어요...</p>
+      <p class="text-slate-400 text-xs mb-6">이미지 수와 네트워크 상태에 따라 최대 1분 정도 걸릴 수 있어요.</p>
+      <button id="cancelGenerateBtn" type="button" class="text-xs text-slate-400 hover:text-red-500 underline underline-offset-4">취소하고 돌아가기</button>
+    </div>
+
+    <div id="resultsView" class="hidden">
+      <button id="backToStep2Btn" type="button" class="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-600 mb-6">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+        </svg>
+        이전 단계로 (제품 정보 수정)
+      </button>
+      <div class="mb-8 text-center">
+        <h2 class="text-2xl font-extrabold tracking-tight mb-2">완성됐어요 🎉</h2>
+        <p class="text-sm text-slate-500 mb-5">결과물을 확인하고 원하는 이미지를 다운로드하세요.</p>
+
+        <button id="regenerateAgainBtn" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold bg-brand-600 text-white hover:bg-brand-700 transition-colors">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:16px;height:16px">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+          </svg>
+          다시 생성하기
+        </button>
+        <p class="text-[11px] text-slate-400 mt-2">같은 사진·정보를 바탕으로 새로운 카피와 이미지를 다시 만들어요.</p>
+      </div>
+
+      <div class="grid lg:grid-cols-2 gap-8 mb-12">
+        <div>
+          <h3 class="font-mono text-[11px] tracking-[0.2em] text-slate-400 uppercase mb-3">대표 썸네일 · 1000×1000</h3>
+          <div class="rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-card aspect-square">
+            <img id="resultThumb" class="w-full h-full object-cover" alt="AI 생성 썸네일" />
+          </div>
+          <div id="thumbPositionControls" class="hidden mt-2">
+            <div class="flex items-center justify-between mb-2">
+              <p class="text-[11px] font-semibold text-slate-500">제품 위치</p>
+              <div class="flex items-center gap-1.5 text-[11px] font-mono text-slate-400">
+                <span>위</span>
+                <input id="thumbPositionInput" type="number" min="0" max="100" step="1" value="50" inputmode="numeric"
+                  class="w-11 rounded-md border border-slate-200 px-1 py-0.5 text-center text-ink font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-brand-600/60 focus:border-brand-600"
+                  aria-label="제품 위치 값 직접 입력 (0~100)" />
+                <span>아래</span>
+              </div>
+            </div>
+            <input id="thumbPositionSlider" type="range" min="0" max="100" step="1" value="50"
+              class="thumb-position-slider w-full" aria-label="제품 위치 (드래그해서 조절)" />
+          </div>
+          <button id="downloadThumbBtn" class="mt-4 w-full flex items-center justify-center gap-2 bg-ink text-white rounded-xl py-3 text-sm font-semibold hover:bg-ink/90 transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="width:16px;height:16px">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+            </svg>
+            썸네일 다운로드
+          </button>
+          <p id="thumbnailDisclaimer" class="text-[11px] text-slate-400 mt-3 leading-relaxed">* AI가 새로 그린 연출컷이에요. 실제 제품과 세부 디테일이 다를 수 있으니 마케팅 비주얼 용도로 활용해주세요.</p>
+          <p class="text-[10px] font-mono text-slate-300 mt-1">model: <span id="usedModelLabel">-</span></p>
+        </div>
+
+        <div>
+          <h3 class="font-mono text-[11px] tracking-[0.2em] text-slate-400 uppercase mb-3">AI 카피 분석</h3>
+          <div id="copyPreview" class="rounded-2xl border border-slate-200 bg-white shadow-card p-6 space-y-4 h-full"></div>
+        </div>
+      </div>
+
+      <div class="mb-4 flex items-center justify-between flex-wrap gap-3">
+        <h3 class="font-mono text-[11px] tracking-[0.2em] text-slate-400 uppercase">상세페이지 미리보기</h3>
+        <div class="flex items-center gap-2 flex-wrap">
+          <div class="flex rounded-lg border border-slate-200 overflow-hidden">
+            <button id="layoutTabA" type="button" class="layout-tab px-3 py-1.5 text-[12px] font-semibold" data-layout="A">레이아웃 A · 매거진형</button>
+            <button id="layoutTabB" type="button" class="layout-tab px-3 py-1.5 text-[12px] font-semibold border-l border-slate-200" data-layout="B">레이아웃 B · 카드형</button>
+            <button id="layoutTabC" type="button" class="layout-tab px-3 py-1.5 text-[12px] font-semibold border-l border-slate-200" data-layout="C">레이아웃 C · 스퀘어그리드형</button>
+            <button id="layoutTabD" type="button" class="layout-tab px-3 py-1.5 text-[12px] font-semibold border-l border-slate-200" data-layout="D">레이아웃 D · 임팩트형</button>
+          </div>
+          <button id="downloadDetailBtn" class="flex items-center gap-2 bg-brand-600 text-white rounded-xl px-4 py-2.5 text-sm font-semibold hover:bg-brand-700 transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="width:16px;height:16px">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+            </svg>
+            <span id="downloadDetailLabel">상세페이지 다운로드</span>
+          </button>
+        </div>
+      </div>
+      <div class="w-full overflow-x-auto rounded-2xl border border-slate-200 bg-slate-100 p-6">
+        <div id="detailCaptureA" class="w-[1000px] bg-white mx-auto shadow-card" style="background-color:#ffffff;"></div>
+        <div id="detailCaptureB" class="w-[1000px] bg-white mx-auto shadow-card hidden" style="background-color:#ffffff;"></div>
+        <div id="detailCaptureC" class="w-[1000px] bg-white mx-auto shadow-card hidden" style="background-color:#ffffff;"></div>
+        <div id="detailCaptureD" class="w-[1000px] bg-white mx-auto shadow-card hidden" style="background-color:#ffffff;"></div>
+      </div>
+
+      <div class="mt-12 text-center">
+        <button id="regenerateBtn" class="text-sm text-slate-400 hover:text-slate-600 underline underline-offset-4">처음부터 다시 만들기</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ================= 하단 네비게이션 (Step 1~2 전용) ================= -->
+<div id="navBar" class="fixed bottom-0 left-0 right-0 z-30 bg-white/90 backdrop-blur border-t border-slate-200">
+  <div class="max-w-6xl mx-auto px-5 sm:px-8 py-4 flex items-center justify-between">
+    <button id="btnBack" class="px-5 py-2.5 rounded-xl text-sm font-semibold text-slate-500 hover:bg-slate-100 transition-colors disabled:opacity-0 disabled:pointer-events-none">
+      이전
+    </button>
+    <button id="btnNext" disabled
+      class="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold bg-brand-600 text-white hover:bg-brand-700 transition-colors disabled:bg-slate-200 disabled:text-slate-400">
+      <span id="btnNextLabel">다음</span>
+      <svg id="btnNextIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px">
+        <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+      </svg>
+    </button>
+  </div>
+</div>
+
+<!-- ================= 토스트(에러/안내) ================= -->
+<div id="toastWrap" class="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-md"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* =========================================================
+   * 0. 설정
+   * =======================================================*/
+  const API_BASE = 'https://generativelanguage.googleapis.com/v1beta';
+  // 텍스트/비전 분석 모델 — 필요 시 'gemini-1.5-flash' 로 교체 가능
+  const TEXT_MODEL = 'gemini-2.5-flash';
+  // 이미지 생성 모델 — 계정마다 접근 가능한 모델이 달라 아래는 "선호 순서"일 뿐, 실제로는
+  // ListModels로 조회해 계정에서 실제 쓸 수 있는 모델을 자동으로 선택합니다.
+  // (1) Imagen 계열: :predict 엔드포인트 사용 / (2) Gemini 이미지 생성 계열(나노 바나나 등): :generateContent 사용
+  const IMAGE_MODEL = 'imagen-3.0-generate-002';
+  const PREFERRED_IMAGE_MODELS = [
+    'imagen-4.0-generate-001',
+    'imagen-4.0-fast-generate-001',
+    'imagen-4.0-ultra-generate-001',
+    'imagen-3.0-generate-002',
+    'imagen-3.0-generate-001',
+    'imagen-3.0-fast-generate-001',
+  ];
+  const PREFERRED_CHAT_IMAGE_MODELS = [
+    'gemini-3.1-flash-image-preview',
+    'gemini-2.5-flash-image',
+    'gemini-2.0-flash-preview-image-generation',
+  ];
+  const LS_KEY = 'ssaka_studio_gemini_api_key';
+  const LS_IMAGE_MODEL_KEY = 'ssaka_studio_image_model_override';
+  const LS_CUSTOM_REFS_KEY = 'ssaka_studio_custom_references';
+  const LS_LOGOS_KEY = 'ssaka_studio_watermark_logos';
+  const LOGO_MAX = 10;
+  const CUSTOM_REF_MAX = 12; // '+' 버튼으로 계속 추가 가능, 넉넉한 실용적 상한
+  // 모델명 칸에 실수로 API 키가 들어간 경우를 감지합니다. (구글 API 키는 보통 'AIza'로 시작하는
+  // 39자 문자열이라, 모델명치고는 형태가 뚜렷이 다릅니다)
+  function looksLikeApiKey(v) {
+    const trimmed = (v || '').trim();
+    if (!trimmed) return false;
+    return /^AIza[0-9A-Za-z_-]{35}$/.test(trimmed) || (state.apiKey && trimmed === state.apiKey);
+  }
+
+  const MOOD_PRESETS = [
+    {
+      id: 'studio',
+      name: '미니멀 스튜디오',
+      ko: '깨끗한 무채색 배경 · 부드러운 그림자 · 하이엔드 카탈로그 톤',
+      swatch: 'linear-gradient(135deg,#F3F4F6,#E2E4E9)',
+      style: 'a clean minimalist seamless studio background in soft neutral grey tones, professional softbox lighting from the front-left, a subtle soft shadow beneath the product, high-end e-commerce catalog photography style, ultra sharp focus'
+    },
+    {
+      id: 'golden',
+      name: '필드 골든아워',
+      ko: '잔디 구장 · 노을빛 역광 · 감성적인 무드',
+      swatch: 'linear-gradient(135deg,#FDE68A,#16A34A)',
+      style: 'an outdoor football pitch at golden hour, warm sunset backlight, gentle lens flare, shallow depth of field with blurred green grass and stadium bokeh in the background, cinematic sports editorial photography'
+    },
+    {
+      id: 'urban',
+      name: '어반 스트릿',
+      ko: '콘크리트 질감 · 도심 그래피티 · 스트릿 무드',
+      swatch: 'linear-gradient(135deg,#9CA3AF,#374151)',
+      style: 'a gritty urban street background with a textured concrete wall and subtle graffiti, dramatic hard side lighting, streetwear editorial photography mood, moody long shadows'
+    },
+    {
+      id: 'luxury',
+      name: '럭셔리 에디토리얼',
+      ko: '짙은 다크톤 · 드라마틱 림라이트 · 하이패션 무드',
+      swatch: 'linear-gradient(135deg,#1F2937,#0B1220)',
+      style: 'a dark moody editorial background in deep charcoal black, dramatic rim lighting outlining the product edges, high-fashion luxury magazine photography style, glossy reflective floor'
+    },
+    {
+      id: 'gradient',
+      name: '그라데이션 팝',
+      ko: '비비드 컬러 그라디언트 · 젊고 에너제틱한 무드',
+      swatch: 'linear-gradient(135deg,#3A5CFF,#A855F7)',
+      style: 'a vibrant bold color gradient background transitioning between electric blue and violet, energetic youthful sports campaign photography, glossy studio lighting, dynamic diagonal composition'
+    },
+  ];
+
+  /* =========================================================
+   * 1. 상태
+   * =======================================================*/
+  const state = {
+    apiKey: '',
+    imageModelOverride: '',
+    step: 1,
+    moodId: null,
+    customReferences: [],
+    logos: [],
+    selectedLogoId: null,
+    productName: '',
+    productCode: '',
+    images: [null, null, null, null, null], // {dataUrl, base64, mime}
+    mainIndex: null,
+    analysis: null,
+    thumbnail: null,
+    thumbnailIsComposite: false,
+    thumbnailIsTrueComposite: false,
+    thumbnailIsDirectComposite: false,
+    usedImageModel: null,
+    activeLayout: 'A',
+    compositeMode: 'B', // 'B' = 직접 합성(AI 미사용, 제품 사진 그대로) — 유일한 생성 방식으로 고정
+    productPosition: 50, // B안 전용: 0(맨 위) ~ 100(맨 아래) 슬라이더 값, 기본 50(중간)
+  };
+
+  /* =========================================================
+   * 2. DOM 참조
+   * =======================================================*/
+  const $ = (sel) => document.querySelector(sel);
+  const apiKeyInput   = $('#apiKeyInput');
+  const toggleKeyBtn  = $('#toggleKeyBtn');
+  const eyeIcon       = $('#eyeIcon');
+  const apiKeyStatus  = $('#apiKeyStatus');
+  const resetApiKeyBtn = $('#resetApiKeyBtn');
+  const settingsToggleBtn = $('#settingsToggleBtn');
+  const settingsKeyDot = $('#settingsKeyDot');
+  const apiSettingsPanel = $('#apiSettingsPanel');
+  const imageModelOverrideInput = $('#imageModelOverrideInput');
+  const checkModelsBtn = $('#checkModelsBtn');
+  const modelCheckResult = $('#modelCheckResult');
+  const clearModelOverrideBtn = $('#clearModelOverrideBtn');
+
+  const moodGrid      = $('#moodGrid');
+  const logoGrid       = $('#logoGrid');
+  const clearLogoSelectionBtn = $('#clearLogoSelectionBtn');
+  const uploadGrid    = $('#uploadGrid');
+  const uploadCount   = $('#uploadCount');
+  const productNameInput = $('#productNameInput');
+  const suggestNameBtn = $('#suggestNameBtn');
+  const nameSuggestStatus = $('#nameSuggestStatus');
+  const productCodeInput = $('#productCodeInput');
+  const manualAnalyzeBtn = $('#manualAnalyzeBtn');
+  const step2AnalysisPreview = $('#step2AnalysisPreview');
+
+  const navBar    = $('#navBar');
+  const btnBack   = $('#btnBack');
+  const btnNext   = $('#btnNext');
+  const btnNextLabel = $('#btnNextLabel');
+  const btnNextIcon  = $('#btnNextIcon');
+
+  const loadingView    = $('#loadingView');
+  const loadingText    = $('#loadingText');
+  const loadingSubText = $('#loadingSubText');
+  const resultsView    = $('#resultsView');
+  const resultThumb    = $('#resultThumb');
+  const thumbPositionControls = $('#thumbPositionControls');
+  const thumbPositionSlider = $('#thumbPositionSlider');
+  const thumbPositionInput = $('#thumbPositionInput');
+  const copyPreview    = $('#copyPreview');
+  const detailCaptureA = $('#detailCaptureA');
+  const detailCaptureB = $('#detailCaptureB');
+  const detailCaptureC = $('#detailCaptureC');
+  const detailCaptureD = $('#detailCaptureD');
+  const layoutTabA     = $('#layoutTabA');
+  const layoutTabB     = $('#layoutTabB');
+  const layoutTabC     = $('#layoutTabC');
+  const layoutTabD     = $('#layoutTabD');
+  const downloadThumbBtn  = $('#downloadThumbBtn');
+  const downloadDetailBtn = $('#downloadDetailBtn');
+  const downloadDetailLabel = $('#downloadDetailLabel');
+  const regenerateBtn  = $('#regenerateBtn');
+  const regenerateAgainBtn = $('#regenerateAgainBtn');
+  const backToStep2Btn = $('#backToStep2Btn');
+  const toastWrap      = $('#toastWrap');
+
+  const EYE_OPEN = eyeIcon.innerHTML;
+  const EYE_OFF = `<path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" />`;
+
+  /* =========================================================
+   * 3. 유틸
+   * =======================================================*/
+  function escapeHtml(str) {
+    return String(str == null ? '' : str).replace(/[&<>"']/g, (ch) => (
+      { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]
+    ));
+  }
+
+  function showToast(message, type = 'error') {
+    const colors = type === 'error'
+      ? 'bg-red-600 text-white'
+      : 'bg-ink text-white';
+    const el = document.createElement('div');
+    el.className = `toast ${colors} rounded-xl px-4 py-3 text-sm shadow-lg mb-2 flex items-start gap-2`;
+    el.innerHTML = `<span class="flex-1 leading-relaxed">${escapeHtml(message)}</span>
+      <button class="shrink-0 opacity-70 hover:opacity-100" aria-label="닫기">✕</button>`;
+    el.querySelector('button').addEventListener('click', () => el.remove());
+    toastWrap.appendChild(el);
+    setTimeout(() => el.remove(), 7000);
+  }
+
+  // 업로드 이미지를 리사이즈 + JPEG로 인코딩합니다.
+  // (요청서의 "Canvas 기반 합성"을 대체하는 것은 아래 Gemini/Imagen 생성 로직이며,
+  //  이 함수는 API 전송용 이미지 용량을 줄이기 위한 순수 전처리 용도입니다.)
+  function resizeImage(file, maxDim = 1400, quality = 0.92) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          let { width, height } = img;
+          if (width > height && width > maxDim) {
+            height = Math.round(height * (maxDim / width));
+            width = maxDim;
+          } else if (height >= width && height > maxDim) {
+            width = Math.round(width * (maxDim / height));
+            height = maxDim;
+          }
+
+          // 흰 배경을 깔기 전에 먼저 투명하게 그려서, 실제로 투명 픽셀이 있는지 확인합니다.
+          // (이미 배경이 제거된 PNG를 업로드한 경우, 흰 배경을 깔아버리면 그 정보가 사라져서
+          //  이후 AI 배경 제거 단계를 다시 거쳐야 하고 결과도 덜 깔끔해질 수 있어요.)
+          const probeCanvas = document.createElement('canvas');
+          probeCanvas.width = width;
+          probeCanvas.height = height;
+          const pctx = probeCanvas.getContext('2d');
+          pctx.drawImage(img, 0, 0, width, height);
+
+          let hasTransparency = false;
+          try {
+            const sw = Math.min(80, width);
+            const sh = Math.min(80, height);
+            const data = pctx.getImageData(0, 0, sw, sh).data;
+            for (let i = 3; i < data.length; i += 4) {
+              if (data[i] < 250) { hasTransparency = true; break; }
+            }
+          } catch (err) {
+            hasTransparency = false;
+          }
+
+          if (hasTransparency) {
+            const dataUrl = probeCanvas.toDataURL('image/png');
+            resolve({ dataUrl, base64: dataUrl.split(',')[1], mime: 'image/png', hasTransparency: true });
+            return;
+          }
+
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, width, height);
+          ctx.drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL('image/jpeg', quality);
+          resolve({ dataUrl, base64: dataUrl.split(',')[1], mime: 'image/jpeg', hasTransparency: false });
+        };
+        img.onerror = () => reject(new Error('이미지를 불러올 수 없습니다.'));
+        img.src = e.target.result;
+      };
+      reader.onerror = () => reject(new Error('파일을 읽을 수 없습니다.'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // 워터마크 로고용: 흰 배경을 채우지 않고 PNG 투명도를 그대로 유지한 채 리사이즈합니다.
+  function resizeImagePreserveAlpha(file, maxDim = 600) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          let { width, height } = img;
+          if (width > height && width > maxDim) {
+            height = Math.round(height * (maxDim / width));
+            width = maxDim;
+          } else if (height >= width && height > maxDim) {
+            width = Math.round(width * (maxDim / height));
+            height = maxDim;
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL('image/png');
+          resolve({ dataUrl, base64: dataUrl.split(',')[1], mime: 'image/png' });
+        };
+        img.onerror = () => reject(new Error('이미지를 불러올 수 없습니다.'));
+        img.src = e.target.result;
+      };
+      reader.onerror = () => reject(new Error('파일을 읽을 수 없습니다.'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function downloadDataUrl(dataUrl, filename) {
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
+  // 결과물은 항상 JPG로 내려받도록, 원본이 PNG(투명 배경 포함)여도 흰 배경을 깔고 JPEG로 재인코딩합니다.
+  function convertToJpeg(dataUrl, quality = 0.92) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = () => reject(new Error('이미지를 불러오지 못했습니다.'));
+      img.src = dataUrl;
+    });
+  }
+
+  // html2canvas 결과에 미세하게 투명한 영역이 남아있으면, JPEG로 변환할 때 그 부분이
+  // 흰색이 아니라 검은색으로 나와서 미리보기(흰 배경)와 다르게 보이는 문제가 있었습니다.
+  // 흰 배경을 깔아둔 새 캔버스 위에 결과를 다시 그려서 항상 흰 배경으로 고정합니다.
+  function canvasToJpeg(sourceCanvas, quality = 0.92) {
+    const canvas = document.createElement('canvas');
+    canvas.width = sourceCanvas.width;
+    canvas.height = sourceCanvas.height;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(sourceCanvas, 0, 0);
+    return canvas.toDataURL('image/jpeg', quality);
+  }
+
+  /* =========================================================
+   * 4. API 키 저장/로드
+   * =======================================================*/
+  function setKeyStatusVisible(visible) {
+    apiKeyStatus.classList.toggle('hidden', !visible);
+    settingsKeyDot.classList.toggle('hidden', !visible);
+  }
+
+  function closeSettingsPanel() {
+    apiSettingsPanel.classList.add('hidden');
+  }
+  settingsToggleBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    apiSettingsPanel.classList.toggle('hidden');
+  });
+  apiSettingsPanel.addEventListener('click', (e) => e.stopPropagation());
+  document.addEventListener('click', () => closeSettingsPanel());
+
+  function loadApiKey() {
+    const saved = localStorage.getItem(LS_KEY);
+    if (saved) {
+      state.apiKey = saved;
+      apiKeyInput.value = saved;
+      setKeyStatusVisible(true);
+    }
+    const savedModel = localStorage.getItem(LS_IMAGE_MODEL_KEY);
+    if (savedModel && !looksLikeApiKey(savedModel)) {
+      state.imageModelOverride = savedModel;
+      imageModelOverrideInput.value = savedModel;
+    } else if (savedModel) {
+      // 예전에 실수로 API 키가 모델명 칸에 저장된 경우 자동으로 정리합니다.
+      localStorage.removeItem(LS_IMAGE_MODEL_KEY);
+    }
+    // 브라우저가 새로고침 시 <details> 열림 상태를 기억하는 경우가 있어, 항상 접힌 채로 시작하도록 강제합니다.
+    const advancedDetails = $('#advancedDetails');
+    if (advancedDetails) advancedDetails.open = false;
+    // 설정 패널도 항상 닫힌 채로 시작합니다.
+    closeSettingsPanel();
+
+    // 등록해둔 커스텀 레퍼런스 배경(최대 2개)을 불러옵니다. 한 번 등록하면 브라우저에 계속 저장돼요.
+    try {
+      const savedRefs = localStorage.getItem(LS_CUSTOM_REFS_KEY);
+      if (savedRefs) {
+        const parsed = JSON.parse(savedRefs);
+        if (Array.isArray(parsed)) {
+          // 예전 고정 슬롯 방식(빈 슬롯이 null로 섞여 있고 id가 없었음)에서도 안전하게 이관합니다.
+          state.customReferences = parsed
+            .filter(Boolean)
+            .map((r) => (r.id ? r : { ...r, id: makeUid() }));
+        }
+      }
+    } catch (err) {
+      console.error('[SSAKA STUDIO] 저장된 레퍼런스를 불러오지 못했어요:', err);
+    }
+
+    // 등록해둔 워터마크 로고를 불러옵니다.
+    try {
+      const savedLogos = localStorage.getItem(LS_LOGOS_KEY);
+      if (savedLogos) {
+        const parsed = JSON.parse(savedLogos);
+        if (parsed && Array.isArray(parsed.logos)) {
+          state.logos = parsed.logos;
+          state.selectedLogoId = parsed.selectedLogoId || null;
+        }
+      }
+    } catch (err) {
+      console.error('[SSAKA STUDIO] 저장된 로고를 불러오지 못했어요:', err);
+    }
+  }
+  apiKeyInput.addEventListener('input', () => {
+    state.apiKey = apiKeyInput.value.trim();
+    cachedImageModel = null;
+    if (state.apiKey) {
+      localStorage.setItem(LS_KEY, state.apiKey);
+      setKeyStatusVisible(true);
+    } else {
+      localStorage.removeItem(LS_KEY);
+      setKeyStatusVisible(false);
+    }
+  });
+  resetApiKeyBtn.addEventListener('click', () => {
+    apiKeyInput.value = '';
+    apiKeyInput.type = 'password';
+    eyeIcon.innerHTML = EYE_OPEN;
+    state.apiKey = '';
+    cachedImageModel = null;
+    localStorage.removeItem(LS_KEY);
+    setKeyStatusVisible(false);
+    showToast('API 키를 초기화했어요. 새 키를 입력해주세요.', 'info');
+  });
+  imageModelOverrideInput.addEventListener('input', () => {
+    const value = imageModelOverrideInput.value.trim();
+    if (looksLikeApiKey(value)) {
+      showToast('여기는 모델명을 입력하는 칸이에요. API 키가 아니라 "imagen-4.0-generate-001" 같은 모델명을 입력해주세요.');
+      state.imageModelOverride = '';
+      cachedImageModel = null;
+      localStorage.removeItem(LS_IMAGE_MODEL_KEY);
+      return;
+    }
+    state.imageModelOverride = value;
+    cachedImageModel = null;
+    if (state.imageModelOverride) {
+      localStorage.setItem(LS_IMAGE_MODEL_KEY, state.imageModelOverride);
+    } else {
+      localStorage.removeItem(LS_IMAGE_MODEL_KEY);
+    }
+  });
+  toggleKeyBtn.addEventListener('click', () => {
+    const showing = apiKeyInput.type === 'text';
+    apiKeyInput.type = showing ? 'password' : 'text';
+    eyeIcon.innerHTML = showing ? EYE_OPEN : EYE_OFF;
+  });
+
+  clearModelOverrideBtn.addEventListener('click', () => {
+    imageModelOverrideInput.value = '';
+    state.imageModelOverride = '';
+    cachedImageModel = null;
+    localStorage.removeItem(LS_IMAGE_MODEL_KEY);
+    showToast('직접 지정한 모델을 지웠어요. 이제 자동 감지로 시도해요.', 'info');
+  });
+
+  checkModelsBtn.addEventListener('click', async () => {
+    if (!state.apiKey) {
+      showToast('API 키를 먼저 입력해주세요.');
+      return;
+    }
+    checkModelsBtn.disabled = true;
+    checkModelsBtn.textContent = '확인 중...';
+    modelCheckResult.classList.remove('hidden');
+    modelCheckResult.innerHTML = '<p class="text-slate-400">모델 목록을 불러오는 중이에요...</p>';
+    try {
+      const { predictModels, chatImageModels } = await listImageCapableModels();
+      const renderList = (title, names, hint) => {
+        if (!names.length) return `<p class="text-slate-400">${title}: 없음</p>`;
+        return `<p class="text-slate-600 font-semibold mb-1">${title}</p>
+          <div class="flex flex-wrap gap-1.5 mb-2">
+            ${names.map((n) => `<button type="button" class="model-pick px-2 py-1 rounded-md bg-white border border-slate-200 hover:border-brand-600 hover:text-brand-600 font-mono text-[10px]" data-model="${n}">${n}</button>`).join('')}
+          </div>
+          <p class="text-slate-400 mb-3">${hint}</p>`;
+      };
+      if (!predictModels.length && !chatImageModels.length) {
+        modelCheckResult.innerHTML = `<p class="text-red-500 font-semibold mb-1">이 API 키에서는 이미지 생성이 가능한 모델을 찾지 못했어요.</p>
+          <p class="text-slate-400">Google AI Studio → Settings → Plan information에서 이 키가 속한 프로젝트의 결제(Billing) 상태를 확인해주세요.</p>`;
+      } else {
+        modelCheckResult.innerHTML =
+          renderList('Imagen 계열 (predict)', predictModels, '아래 항목을 클릭하면 위 입력칸에 자동으로 채워져요.') +
+          renderList('제미나이 이미지 생성 계열 (generateContent)', chatImageModels, '아래 항목을 클릭하면 위 입력칸에 자동으로 채워져요.');
+      }
+    } catch (err) {
+      modelCheckResult.innerHTML = `<p class="text-red-500">${escapeHtml(err.message)}</p>`;
+    } finally {
+      checkModelsBtn.disabled = false;
+      checkModelsBtn.textContent = '이 API 키로 사용 가능한 이미지 모델 확인하기 →';
+    }
+  });
+
+  modelCheckResult.addEventListener('click', (e) => {
+    const btn = e.target.closest('.model-pick');
+    if (!btn) return;
+    imageModelOverrideInput.value = btn.dataset.model;
+    state.imageModelOverride = btn.dataset.model;
+    cachedImageModel = null;
+    localStorage.setItem(LS_IMAGE_MODEL_KEY, state.imageModelOverride);
+    showToast(`"${btn.dataset.model}"로 지정했어요. 이제 이 모델로 생성을 시도해요.`, 'info');
+  });
+
+  /* =========================================================
+   * 5. STEP 1 — 무드 카드
+   * =======================================================*/
+  function makeUid() {
+    return 'id_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  }
+
+  const CUSTOM_UPLOAD_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" style="width:20px;height:20px">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0 3 3m-3-3-3 3M6.75 19.5a4.5 4.5 0 0 1-1.41-8.775 5.25 5.25 0 0 1 10.233-2.33 3 3 0 0 1 3.758 3.848A3.752 3.752 0 0 1 18 19.5H6.75Z" />
+    </svg>`;
+
+  function renderMoodGrid() {
+    const presetCards = MOOD_PRESETS.map((m, i) => `
+      <button type="button" class="mood-card group text-left rounded-2xl overflow-hidden bg-white border border-slate-200 transition-all hover:-translate-y-0.5"
+        data-mood="${m.id}" data-selected="${state.moodId === m.id}">
+        <div class="h-14 relative" style="background:${m.swatch}">
+          <div class="mood-check absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-brand-600 text-white flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" style="width:11px;height:11px">
+              <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+            </svg>
+          </div>
+        </div>
+        <div class="p-3">
+          <p class="font-mono text-[9px] text-brand-600 tracking-[0.15em] mb-0.5">MOOD ${String(i + 1).padStart(2, '0')}</p>
+          <h3 class="font-bold text-[13px] mb-0.5">${m.name}</h3>
+          <p class="text-[11px] text-slate-500 leading-snug">${m.ko}</p>
+        </div>
+      </button>
+    `).join('');
+
+    const customCards = state.customReferences.map((ref, i) => {
+      const moodId = `custom-${ref.id}`;
+      return `
+      <div class="mood-card group text-left rounded-2xl overflow-hidden bg-white border border-slate-200 transition-all hover:-translate-y-0.5 relative"
+        data-mood="${moodId}" data-selected="${state.moodId === moodId}">
+        <div class="h-14 relative">
+          <img src="${ref.dataUrl}" class="w-full h-full object-cover" alt="${escapeHtml(ref.name || '커스텀 레퍼런스')} ${i + 1}" />
+          <div class="mood-check absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-brand-600 text-white flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" style="width:11px;height:11px">
+              <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+            </svg>
+          </div>
+          <button type="button" class="custom-remove-btn absolute top-1.5 left-1.5 w-5 h-5 rounded-full bg-black/55 text-white text-[10px] flex items-center justify-center hover:bg-black/75" data-ref-id="${ref.id}" aria-label="레퍼런스 이미지 삭제">✕</button>
+        </div>
+        <div class="p-3">
+          <p class="font-mono text-[9px] text-brand-600 tracking-[0.15em] mb-1">MOOD ${String(MOOD_PRESETS.length + i + 1).padStart(2, '0')}</p>
+          <input type="text" class="custom-name-input w-full text-[13px] font-bold text-ink border-0 border-b border-transparent hover:border-slate-200 focus:border-brand-600 focus:outline-none px-0 py-0.5 bg-transparent"
+            value="${escapeHtml(ref.name || '')}" placeholder="배경 이름 (예: 매장 랙 1)" data-ref-id="${ref.id}" />
+        </div>
+      </div>
+    `;
+    }).join('');
+
+    const addCard = state.customReferences.length < CUSTOM_REF_MAX ? `
+      <div class="relative rounded-2xl overflow-hidden border-2 border-dashed border-slate-300 bg-white hover:border-brand-400 transition-colors">
+        <div class="h-14 flex items-center justify-center text-slate-300">${CUSTOM_UPLOAD_ICON}</div>
+        <div class="p-3">
+          <h3 class="font-bold text-[13px] mb-0.5 text-slate-600">+ 배경 추가</h3>
+          <p class="text-[11px] text-slate-400 leading-snug">매장 사진 등을 계속 등록할 수 있어요</p>
+        </div>
+        <input type="file" accept="image/*" class="custom-reference-add-input absolute inset-0 opacity-0 cursor-pointer" aria-label="새 레퍼런스 배경 추가" />
+      </div>
+    ` : '';
+
+    moodGrid.innerHTML = presetCards + customCards + addCard;
+  }
+
+  function saveCustomReferences() {
+    try {
+      localStorage.setItem(LS_CUSTOM_REFS_KEY, JSON.stringify(state.customReferences));
+    } catch (err) {
+      // 용량 초과 등으로 저장이 안 되더라도 이번 세션에서 계속 쓰는 데는 문제 없습니다.
+      console.error('[SSAKA STUDIO] 레퍼런스 저장 실패:', err);
+    }
+  }
+
+  moodGrid.addEventListener('click', (e) => {
+    // 파일 입력이나 이름 입력칸을 클릭한 경우: 여기서 재렌더링하면 포커스가 끊기거나
+    // 파일 선택창이 열리는 도중 input DOM이 교체돼 change 이벤트가 씹히는 버그가 생깁니다.
+    if (e.target.matches('.custom-reference-add-input') || e.target.matches('.custom-name-input')) return;
+    const removeBtn = e.target.closest('.custom-remove-btn');
+    if (removeBtn) {
+      const refId = removeBtn.dataset.refId;
+      state.customReferences = state.customReferences.filter((r) => r.id !== refId);
+      if (state.moodId === `custom-${refId}`) state.moodId = null;
+      saveCustomReferences();
+      renderMoodGrid();
+      updateNextButtonState();
+      return;
+    }
+    const card = e.target.closest('.mood-card');
+    if (!card) return;
+    state.moodId = card.dataset.mood;
+    renderMoodGrid();
+    updateNextButtonState();
+  });
+
+  // 이름 입력은 그리드를 다시 그리지 않고 조용히 저장만 합니다 (재렌더링하면 입력 중 포커스가 끊겨요).
+  moodGrid.addEventListener('input', (e) => {
+    if (!e.target.matches('.custom-name-input')) return;
+    const refId = e.target.dataset.refId;
+    const ref = state.customReferences.find((r) => r.id === refId);
+    if (ref) {
+      ref.name = e.target.value;
+      saveCustomReferences();
+    }
+  });
+
+  moodGrid.addEventListener('change', async (e) => {
+    if (!e.target.matches('.custom-reference-add-input')) return;
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      showToast('이미지 파일만 업로드할 수 있어요.');
+      return;
+    }
+    if (state.customReferences.length >= CUSTOM_REF_MAX) {
+      showToast(`레퍼런스는 최대 ${CUSTOM_REF_MAX}개까지 등록할 수 있어요.`);
+      return;
+    }
+    try {
+      const resized = await resizeImage(file);
+      const ref = { id: makeUid(), ...resized, styleDescription: null, name: '' };
+      state.customReferences.push(ref);
+      state.moodId = `custom-${ref.id}`;
+      saveCustomReferences();
+      renderMoodGrid();
+      updateNextButtonState();
+    } catch (err) {
+      showToast('이미지를 불러오는 중 문제가 발생했어요: ' + err.message);
+    }
+  });
+
+  // 현재 선택된 무드를 프리셋/커스텀 구분 없이 하나의 형태로 돌려줍니다.
+  function getSelectedMood() {
+    if (state.moodId && state.moodId.startsWith('custom-')) {
+      const refId = state.moodId.slice(7);
+      const ref = state.customReferences.find((r) => r.id === refId);
+      if (!ref) return null;
+      return {
+        id: state.moodId,
+        name: (ref.name && ref.name.trim()) || '커스텀 레퍼런스',
+        ko: '사용자 업로드 배경',
+        style: ref.styleDescription || '',
+        isCustom: true,
+        refId: ref.id,
+        referenceImage: ref,
+      };
+    }
+    return MOOD_PRESETS.find((m) => m.id === state.moodId) || null;
+  }
+
+  /* =========================================================
+   * 5-1. 워터마크 로고 갤러리
+   * =======================================================*/
+  function renderLogoGrid() {
+    const items = state.logos.map((logo) => `
+      <div class="relative w-20 h-20 rounded-xl overflow-hidden border-2 ${state.selectedLogoId === logo.id ? 'border-brand-600' : 'border-slate-200'} bg-white cursor-pointer logo-card" data-logo-id="${logo.id}" style="background-image:linear-gradient(45deg,#F1F5F9 25%,transparent 25%),linear-gradient(-45deg,#F1F5F9 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#F1F5F9 75%),linear-gradient(-45deg,transparent 75%,#F1F5F9 75%);background-size:10px 10px;background-position:0 0,0 5px,5px -5px,-5px 0;">
+        <img src="${logo.dataUrl}" class="w-full h-full object-contain p-2" alt="워터마크 로고" draggable="false" />
+        <button type="button" class="logo-remove-btn absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-black/60 text-white text-[10px] flex items-center justify-center hover:bg-black/80" data-logo-id="${logo.id}" aria-label="로고 삭제">✕</button>
+        ${state.selectedLogoId === logo.id ? `<div class="absolute bottom-0 inset-x-0 bg-brand-600 text-white text-[9px] text-center py-0.5 font-semibold">사용중</div>` : ''}
+      </div>
+    `).join('');
+
+    const addTile = state.logos.length < LOGO_MAX ? `
+      <div class="relative w-20 h-20 rounded-xl border-2 border-dashed border-slate-300 bg-white flex items-center justify-center text-slate-300 hover:border-brand-400 transition-colors">
+        ${CUSTOM_UPLOAD_ICON}
+        <input type="file" accept="image/*" class="logo-add-input absolute inset-0 opacity-0 cursor-pointer" aria-label="워터마크 로고 추가" />
+      </div>
+    ` : '';
+
+    logoGrid.innerHTML = items + addTile;
+  }
+
+  function saveLogos() {
+    try {
+      localStorage.setItem(LS_LOGOS_KEY, JSON.stringify({ logos: state.logos, selectedLogoId: state.selectedLogoId }));
+    } catch (err) {
+      console.error('[SSAKA STUDIO] 로고 저장 실패:', err);
+    }
+  }
+
+  logoGrid.addEventListener('click', (e) => {
+    if (e.target.matches('.logo-add-input')) return; // 파일 선택창 여는 도중 재렌더링 방지
+    const removeBtn = e.target.closest('.logo-remove-btn');
+    if (removeBtn) {
+      const logoId = removeBtn.dataset.logoId;
+      state.logos = state.logos.filter((l) => l.id !== logoId);
+      if (state.selectedLogoId === logoId) state.selectedLogoId = null;
+      saveLogos();
+      renderLogoGrid();
+      return;
+    }
+    const card = e.target.closest('.logo-card');
+    if (!card) return;
+    const logoId = card.dataset.logoId;
+    state.selectedLogoId = state.selectedLogoId === logoId ? null : logoId; // 다시 누르면 선택 해제
+    saveLogos();
+    renderLogoGrid();
+  });
+
+  logoGrid.addEventListener('change', async (e) => {
+    if (!e.target.matches('.logo-add-input')) return;
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      showToast('이미지 파일만 업로드할 수 있어요.');
+      return;
+    }
+    if (state.logos.length >= LOGO_MAX) {
+      showToast(`로고는 최대 ${LOGO_MAX}개까지 등록할 수 있어요.`);
+      return;
+    }
+    try {
+      const resized = await resizeImagePreserveAlpha(file);
+      const logo = { id: makeUid(), ...resized };
+      state.logos.push(logo);
+      if (!state.selectedLogoId) state.selectedLogoId = logo.id; // 처음 등록하면 자동으로 사용 설정
+      saveLogos();
+      renderLogoGrid();
+    } catch (err) {
+      showToast('로고를 불러오는 중 문제가 발생했어요: ' + err.message);
+    }
+  });
+
+  clearLogoSelectionBtn.addEventListener('click', () => {
+    state.selectedLogoId = null;
+    saveLogos();
+    renderLogoGrid();
+    showToast('워터마크를 사용하지 않도록 설정했어요.', 'info');
+  });
+
+  // 생성된 대표 이미지 우측 하단에 선택된 로고를 합성합니다. (PNG 투명 배경 로고를 그대로 살려서 얹음)
+  function applyWatermark(thumbnailDataUrl, logoDataUrl) {
+    return new Promise((resolve, reject) => {
+      const baseImg = new Image();
+      baseImg.onload = () => {
+        const logoImg = new Image();
+        logoImg.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = baseImg.naturalWidth;
+          canvas.height = baseImg.naturalHeight;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(baseImg, 0, 0, canvas.width, canvas.height);
+
+          const margin = canvas.width * 0.035;
+          const logoW = canvas.width * 0.16;
+          const logoH = logoW * (logoImg.naturalHeight / logoImg.naturalWidth);
+          const x = canvas.width - logoW - margin;
+          const y = canvas.height - logoH - margin;
+
+          ctx.globalAlpha = 0.88;
+          ctx.drawImage(logoImg, x, y, logoW, logoH);
+          ctx.globalAlpha = 1;
+
+          resolve(canvas.toDataURL('image/png'));
+        };
+        logoImg.onerror = () => reject(new Error('로고 이미지를 불러오지 못했습니다.'));
+        logoImg.src = logoDataUrl;
+      };
+      baseImg.onerror = () => reject(new Error('생성된 이미지를 불러오지 못했습니다.'));
+      baseImg.src = thumbnailDataUrl;
+    });
+  }
+
+  /* =========================================================
+   * 6. STEP 2 — 업로드 그리드
+   * =======================================================*/
+  const UPLOAD_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" style="width:22px;height:22px">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0 3 3m-3-3-3 3M6.75 19.5a4.5 4.5 0 0 1-1.41-8.775 5.25 5.25 0 0 1 10.233-2.33 3 3 0 0 1 3.758 3.848A3.752 3.752 0 0 1 18 19.5H6.75Z" />
+    </svg>`;
+
+  const DRAG_HANDLE_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width:13px;height:13px">
+      <circle cx="8" cy="6" r="1.3"/><circle cx="16" cy="6" r="1.3"/>
+      <circle cx="8" cy="12" r="1.3"/><circle cx="16" cy="12" r="1.3"/>
+      <circle cx="8" cy="18" r="1.3"/><circle cx="16" cy="18" r="1.3"/>
+    </svg>`;
+
+  function renderUploadGrid() {
+    uploadGrid.innerHTML = state.images.map((img, i) => `
+      <div class="upload-slot relative aspect-square rounded-2xl border-2 ${img ? 'border-transparent' : 'border-dashed border-slate-300'} bg-white overflow-hidden"
+        data-index="${i}" ${img ? 'draggable="true"' : ''}>
+        ${img
+          ? `<img src="${img.dataUrl}" class="w-full h-full object-cover" alt="업로드 이미지 ${i + 1}" draggable="false" />
+             <div class="drag-handle" title="드래그해서 순서 변경">${DRAG_HANDLE_ICON}</div>`
+          : `<div class="w-full h-full flex flex-col items-center justify-center text-slate-300 gap-1.5">
+               ${UPLOAD_ICON}
+               <span class="text-[11px] font-medium text-slate-400">${i === 0 ? '이미지 업로드 또는 드래그' : `이미지 ${i + 1}`}</span>
+             </div>`
+        }
+        <input type="file" accept="image/*" class="upload-input absolute inset-0 opacity-0 cursor-pointer" data-index="${i}" aria-label="이미지 ${i + 1} 업로드" />
+        ${img ? `
+          <label draggable="false" class="absolute bottom-2 left-2 right-2 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[11px] font-semibold cursor-pointer backdrop-blur bg-white/95 border ${state.mainIndex === i ? 'text-brand-600 border-brand-600' : 'text-slate-400 border-slate-200'}">
+            <input type="radio" name="mainImage" class="main-radio" value="${i}" ${state.mainIndex === i ? 'checked' : ''} />
+            대표 이미지
+          </label>
+          <button type="button" draggable="false" class="remove-btn absolute top-2 right-2 w-6 h-6 rounded-full bg-black/55 text-white text-xs flex items-center justify-center hover:bg-black/75" data-index="${i}" aria-label="이미지 삭제">✕</button>
+        ` : ''}
+      </div>
+    `).join('');
+
+    const filled = state.images.filter(Boolean).length;
+    uploadCount.textContent = `${filled} / 5`;
+  }
+
+  // 지정된 슬롯 하나에 파일을 채워 넣습니다. (클릭 업로드 / 드래그&드롭 공용)
+  async function assignFileToSlot(file, idx) {
+    if (!file || !file.type.startsWith('image/')) {
+      showToast('이미지 파일만 업로드할 수 있어요.');
+      return;
+    }
+    try {
+      const resized = await resizeImage(file);
+      state.images[idx] = resized;
+      if (state.mainIndex === null) state.mainIndex = idx;
+      renderUploadGrid();
+      updateNextButtonState();
+      if (state.mainIndex === idx) maybeSuggestProductName();
+    } catch (err) {
+      showToast('이미지를 불러오는 중 문제가 발생했어요: ' + err.message);
+    }
+  }
+
+  // 여러 장을 한 번에 드롭했을 때: 지정 슬롯부터 채우고, 나머지는 빈 슬롯 순서대로 채웁니다.
+  async function assignFilesToSlots(fileList, preferredIndex) {
+    const files = Array.from(fileList).filter((f) => f.type.startsWith('image/'));
+    if (!files.length) {
+      showToast('이미지 파일만 업로드할 수 있어요.');
+      return;
+    }
+    const order = [];
+    if (preferredIndex !== null && preferredIndex !== undefined) order.push(preferredIndex);
+    for (let i = 0; i < state.images.length; i++) {
+      if (!order.includes(i) && !state.images[i]) order.push(i);
+    }
+    for (const file of files) {
+      const idx = order.shift();
+      if (idx === undefined) break; // 5칸이 모두 찼습니다
+      await assignFileToSlot(file, idx);
+    }
+  }
+
+  function swapSlots(a, b) {
+    if (a === b) return;
+    [state.images[a], state.images[b]] = [state.images[b], state.images[a]];
+    if (state.mainIndex === a) state.mainIndex = b;
+    else if (state.mainIndex === b) state.mainIndex = a;
+    renderUploadGrid();
+  }
+
+  uploadGrid.addEventListener('change', (e) => {
+    if (e.target.matches('.upload-input')) {
+      const idx = Number(e.target.dataset.index);
+      const file = e.target.files && e.target.files[0];
+      if (file) assignFileToSlot(file, idx);
+    } else if (e.target.matches('.main-radio')) {
+      state.mainIndex = Number(e.target.value);
+      renderUploadGrid();
+      maybeSuggestProductName();
+    }
+  });
+
+  uploadGrid.addEventListener('click', (e) => {
+    const removeBtn = e.target.closest('.remove-btn');
+    if (!removeBtn) return;
+    const idx = Number(removeBtn.dataset.index);
+    state.images[idx] = null;
+    if (state.mainIndex === idx) {
+      const nextMain = state.images.findIndex(Boolean);
+      state.mainIndex = nextMain === -1 ? null : nextMain;
+    }
+    renderUploadGrid();
+    updateNextButtonState();
+  });
+
+  // ---- 드래그&드롭: 이미지 슬롯끼리 자유롭게 순서 바꾸기 ----
+  let dragSourceIndex = null;
+
+  uploadGrid.addEventListener('dragstart', (e) => {
+    const slot = e.target.closest('.upload-slot');
+    if (!slot || slot.getAttribute('draggable') !== 'true') return;
+    dragSourceIndex = Number(slot.dataset.index);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/x-ssaka-slot', String(dragSourceIndex));
+    slot.classList.add('dragging');
+  });
+
+  uploadGrid.addEventListener('dragend', () => {
+    dragSourceIndex = null;
+    uploadGrid.querySelectorAll('.upload-slot').forEach((el) => {
+      el.classList.remove('dragging', 'drop-target');
+    });
+  });
+
+  uploadGrid.addEventListener('dragover', (e) => {
+    e.preventDefault(); // 이걸 해줘야 drop 이벤트가 발생합니다.
+    e.dataTransfer.dropEffect = dragSourceIndex === null ? 'copy' : 'move';
+    const slot = e.target.closest('.upload-slot');
+    if (!slot) return;
+    slot.classList.add('drop-target');
+  });
+
+  uploadGrid.addEventListener('dragleave', (e) => {
+    const slot = e.target.closest('.upload-slot');
+    if (slot) slot.classList.remove('drop-target');
+  });
+
+  uploadGrid.addEventListener('drop', (e) => {
+    e.preventDefault();
+    const slot = e.target.closest('.upload-slot');
+    uploadGrid.querySelectorAll('.upload-slot').forEach((el) => el.classList.remove('drop-target', 'dragging'));
+
+    const targetIndex = slot ? Number(slot.dataset.index) : null;
+
+    // 케이스 1: OS 탐색기 등 외부에서 이미지 파일을 끌어다 놓은 경우
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      assignFilesToSlots(e.dataTransfer.files, targetIndex);
+      dragSourceIndex = null;
+      return;
+    }
+
+    // 케이스 2: 이미 업로드된 슬롯끼리 순서를 바꾸는 경우
+    const fromIndex = dragSourceIndex !== null
+      ? dragSourceIndex
+      : Number(e.dataTransfer.getData('text/x-ssaka-slot'));
+    if (!Number.isNaN(fromIndex) && targetIndex !== null) {
+      swapSlots(fromIndex, targetIndex);
+    }
+    dragSourceIndex = null;
+  });
+
+  productNameInput.addEventListener('input', () => {
+    state.productName = productNameInput.value;
+    updateNextButtonState();
+  });
+  productCodeInput.addEventListener('input', () => {
+    state.productCode = productCodeInput.value;
+  });
+
+  /* =========================================================
+   * 7. 스텝 전환 / 네비게이션
+   * =======================================================*/
+  function updateStepper() {
+    document.querySelectorAll('.step-node').forEach((node) => {
+      const n = Number(node.dataset.step);
+      const circle = node.querySelector('.node-circle');
+      const label = node.querySelector('.node-label');
+      const clickable = n < state.step; // 이미 지나온 단계만 클릭해서 되돌아갈 수 있어요.
+      node.classList.toggle('cursor-pointer', clickable);
+      node.classList.toggle('cursor-default', !clickable);
+      node.setAttribute('tabindex', clickable ? '0' : '-1');
+      node.setAttribute('aria-disabled', clickable ? 'false' : 'true');
+      if (n < state.step) {
+        circle.className = 'node-circle w-10 h-10 rounded-full flex items-center justify-center font-mono text-[13px] font-semibold bg-white border-2 border-brand-600 text-brand-600 transition-colors hover:bg-brand-50';
+        label.className = 'node-label font-mono text-[10px] tracking-[0.2em] uppercase text-brand-600 transition-colors';
+      } else if (n === state.step) {
+        circle.className = 'node-circle w-10 h-10 rounded-full flex items-center justify-center font-mono text-[13px] font-semibold bg-brand-600 border-2 border-brand-600 text-white transition-colors';
+        label.className = 'node-label font-mono text-[10px] tracking-[0.2em] uppercase text-ink font-semibold transition-colors';
+      } else {
+        circle.className = 'node-circle w-10 h-10 rounded-full flex items-center justify-center font-mono text-[13px] font-semibold bg-white border-2 border-slate-200 text-slate-300 transition-colors';
+        label.className = 'node-label font-mono text-[10px] tracking-[0.2em] uppercase text-slate-300 transition-colors';
+      }
+    });
+    $('#stepperFill').style.width = state.step === 1 ? '0%' : state.step === 2 ? '50%' : '100%';
+  }
+
+  function updateNextButtonState() {
+    if (state.step === 1) {
+      btnNext.disabled = !state.moodId;
+      btnNextLabel.textContent = '다음';
+      btnNextIcon.classList.remove('hidden');
+    } else if (state.step === 2) {
+      const hasName = state.productName.trim().length > 0;
+      const hasMainImage = state.mainIndex !== null && !!state.images[state.mainIndex];
+      btnNext.disabled = !(hasName && hasMainImage);
+      btnNextLabel.textContent = 'AI로 생성하기';
+      btnNextIcon.classList.add('hidden');
+    }
+  }
+
+  function goToStep(n) {
+    state.step = n;
+    ['step1', 'step2', 'step3'].forEach((id, i) => {
+      $('#' + id).classList.toggle('hidden', i + 1 !== n);
+    });
+    navBar.classList.toggle('hidden', n === 3);
+    btnBack.disabled = n === 1;
+    updateStepper();
+    updateNextButtonState();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  btnBack.addEventListener('click', () => {
+    if (state.step > 1) goToStep(state.step - 1);
+  });
+
+  // 스텝퍼(01/02/03)에서 이미 지나온 단계를 클릭하면 그 단계로 바로 이동합니다.
+  // 아직 도달하지 않은 단계(예: 결과가 없는데 03을 클릭)는 무시합니다.
+  function handleStepNodeNavigate(node) {
+    const target = Number(node.dataset.step);
+    if (!target || target >= state.step) return;
+    if (target === 2 && state.analysis) renderStep2AnalysisPreview(state.analysis);
+    goToStep(target);
+  }
+
+  const stepperNav = $('#stepperNav');
+  if (stepperNav) {
+    stepperNav.addEventListener('click', (e) => {
+      const node = e.target.closest('.step-node');
+      if (!node) return;
+      handleStepNodeNavigate(node);
+    });
+    stepperNav.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      const node = e.target.closest('.step-node');
+      if (!node) return;
+      e.preventDefault();
+      handleStepNodeNavigate(node);
+    });
+  }
+
+  btnNext.addEventListener('click', () => {
+    if (state.step === 1) {
+      goToStep(2);
+    } else if (state.step === 2) {
+      handleGenerate();
+    }
+  });
+
+  regenerateBtn.addEventListener('click', () => {
+    state.moodId = null;
+    state.productName = '';
+    state.productCode = '';
+    state.images = [null, null, null, null, null];
+    state.mainIndex = null;
+    state.analysis = null;
+    state.thumbnail = null;
+    state.usedImageModel = null;
+    state.thumbnailIsComposite = false;
+    state.thumbnailIsTrueComposite = false;
+    state.thumbnailIsDirectComposite = false;
+    productNameInput.value = '';
+    productCodeInput.value = '';
+    step2AnalysisPreview.classList.add('hidden');
+    step2AnalysisPreview.innerHTML = '';
+    renderMoodGrid();
+    renderUploadGrid();
+    resultsView.classList.add('hidden');
+    goToStep(1);
+  });
+
+  // 같은 무드·이미지·제품정보로 AI 분석과 이미지 생성을 처음부터 다시 실행합니다.
+  // (입력은 그대로 두고 결과만 새로 만듭니다 — 매번 새로운 카피/이미지가 나와요)
+  regenerateAgainBtn.addEventListener('click', () => {
+    handleGenerate();
+  });
+
+  /* =========================================================
+   * 8. Gemini 태스크 A — 텍스트/디자인 분석
+   * =======================================================*/
+  function buildAnalysisPrompt(mood) {
+    return `당신은 대한민국 최고의 스포츠 패션 커머스 MD이자 카피라이터입니다.
+'싸카풋볼스토어'라는 축구 전문 편집샵의 신제품 상세페이지를 기획하고 있습니다.
+
+[제품 정보]
+- 제품명: ${state.productName || '미입력'}
+- 제품코드: ${state.productCode || '미입력'}
+- 선택된 연출 무드: ${mood.name} (${mood.ko})
+
+먼저 전달된 이미지 중 첫 번째는 제품의 대표 이미지이고, 이어지는 이미지들은(있다면) 상세/디테일 컷입니다.
+이미지를 면밀히 분석해 소재, 컬러, 핏, 디자인 디테일, 기능성 등을 파악한 뒤 아래를 수행하세요.
+
+1. 이 제품의 핵심 셀링포인트(USP)를 3~5개 도출하세요. 각 항목은 8자 내외의 짧은 문구로 작성하세요.
+2. 상세페이지 상단에 들어갈 임팩트 있는 헤드카피 1개와, 이를 보완하는 서브카피 1개를 작성하세요.
+3. 무신사·29CM 스타일의 세련되고 신뢰감 있는 에디토리얼 톤으로 상세 설명문(2~3문단, 문단 사이는 줄바꿈으로 구분)을 작성하세요.
+4. 이미지에서 관찰되는 실제 특징을 바탕으로 제품 특징(feature)을 3~4개, 각각 제목과 1~2문장 설명으로 정리하세요.
+5. 선택된 무드와 제품의 실제 형태·색상·재질 특징을 결합하여, 이미지 생성 AI가 이해할 수 있는 상세한 영문 이미지 프롬프트를 작성하세요.
+   - 제품의 실루엣, 색상, 소재 질감을 구체적으로 묘사하세요.
+   - 인물의 얼굴, 텍스트, 로고, 워터마크는 절대 포함하지 마세요.
+   - 정사각형(1:1) 구도의 전문 제품 사진 스타일로 묘사하세요.${mood.isCustom ? '\n   - 배경/장면 묘사는 절대 포함하지 마세요. 배경은 별도의 레퍼런스 이미지로 대체되므로, 오직 제품 자체(실루엣·색상·소재·질감)만 영문으로 묘사하세요.' : ''}
+
+반드시 지정된 JSON 스키마 형식으로만 응답하세요.`;
+  }
+
+  // fetch가 60초 넘게 응답하지 않으면 스스로 중단하고 에러로 전환합니다.
+  // (이게 없으면 네트워크가 걸린 경우 로딩 스피너가 영원히 도는 "멈춤" 현상이 발생해요.)
+  let currentController = null;
+  async function requestJson(url, options = {}, timeoutMs = 60000) {
+    const controller = new AbortController();
+    currentController = controller;
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await fetch(url, { ...options, signal: controller.signal });
+      return res;
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        throw new Error(`응답이 너무 오래 걸려 요청을 중단했어요 (${Math.round(timeoutMs / 1000)}초 초과). 네트워크 상태와 API 키를 확인한 뒤 다시 시도해주세요.`);
+      }
+      throw new Error('네트워크 요청에 실패했어요: ' + err.message);
+    } finally {
+      clearTimeout(timer);
+      if (currentController === controller) currentController = null;
+    }
+  }
+
+  async function postJson(url, body, timeoutMs = 60000) {
+    return requestJson(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }, timeoutMs);
+  }
+
+  // 구글 모델 ID는 영문/숫자/점/하이픈/밑줄만 허용됩니다. 이 형식을 벗어나면 API가
+  // "unexpected model name format" 오류를 던지므로, 보내기 전에 미리 걸러냅니다.
+  const isValidModelId = (n) => typeof n === 'string' && /^[a-zA-Z0-9._-]+$/.test(n.trim());
+
+  // 이 API 키의 ListModels 응답에서 이미지 생성이 가능한 모델들을 전부 뽑아냅니다.
+  // - predict 계열(Imagen): supportedGenerationMethods에 'predict' 포함 + 이름에 imagen
+  // - generateContent 계열(제미나이 이미지 생성, 예: 나노 바나나): 이름에 image 포함 + generateContent 지원
+  async function listImageCapableModels() {
+    const res = await requestJson(`${API_BASE}/models?key=${encodeURIComponent(state.apiKey)}`, { method: 'GET' }, 20000);
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      throw new Error(errBody?.error?.message || `모델 목록을 불러오지 못했어요 (HTTP ${res.status})`);
+    }
+    const data = await res.json();
+    const all = data.models || [];
+    const predictModels = all
+      .filter((m) => (m.supportedGenerationMethods || []).includes('predict') && /imagen/i.test(m.name))
+      .map((m) => m.name.replace(/^models\//, ''))
+      .filter(isValidModelId);
+    const chatImageModels = all
+      .filter((m) => (m.supportedGenerationMethods || []).includes('generateContent') && /image/i.test(m.name) && !/imagen/i.test(m.name))
+      .map((m) => m.name.replace(/^models\//, ''))
+      .filter(isValidModelId);
+    return { predictModels, chatImageModels };
+  }
+
+  // 이 API 키에서 실제로 사용 가능한 이미지 생성 모델을 찾아냅니다. Imagen(predict)을 먼저 찾고,
+  // 없으면 제미나이 이미지 생성 계열(generateContent, 예: 나노 바나나)로 대체합니다.
+  let cachedImageModel = null;
+  function detectMode(modelId) {
+    return /^imagen/i.test(modelId) ? 'predict' : 'chat';
+  }
+  async function resolveImageModel() {
+    if (state.imageModelOverride) {
+      if (looksLikeApiKey(state.imageModelOverride)) {
+        showToast('"고급 설정"에 모델명이 아니라 API 키가 들어가 있었어요. 지우고 자동 감지로 시도할게요.');
+        state.imageModelOverride = '';
+        imageModelOverrideInput.value = '';
+        localStorage.removeItem(LS_IMAGE_MODEL_KEY);
+      } else if (!isValidModelId(state.imageModelOverride)) {
+        showToast(`입력하신 모델명("${state.imageModelOverride}") 형식이 올바르지 않아요. 영문/숫자/점/하이픈만 사용할 수 있어요. 자동 감지로 대신 시도할게요.`);
+      } else {
+        return { id: state.imageModelOverride.trim(), mode: detectMode(state.imageModelOverride.trim()) };
+      }
+    }
+    if (cachedImageModel) return cachedImageModel;
+
+    try {
+      const { predictModels, chatImageModels } = await listImageCapableModels();
+      // chat 계열(제미나이 이미지 생성)을 우선합니다 — 실제 제품 사진을 입력으로 넣어
+      // "제품은 그대로, 배경만 새로" 합성할 수 있는 유일한 방식이기 때문입니다.
+      // Imagen(predict)은 순수 텍스트→이미지라 실제 사진을 반영할 수 없어요.
+      if (chatImageModels.length) {
+        const id = PREFERRED_CHAT_IMAGE_MODELS.find((p) => chatImageModels.includes(p)) || chatImageModels[0];
+        cachedImageModel = { id, mode: 'chat' };
+        return cachedImageModel;
+      }
+      if (predictModels.length) {
+        const id = PREFERRED_IMAGE_MODELS.find((p) => predictModels.includes(p)) || predictModels[0];
+        cachedImageModel = { id, mode: 'predict' };
+        return cachedImageModel;
+      }
+      return { id: IMAGE_MODEL, mode: 'predict' }; // 목록에 하나도 없어도 기본값으로 일단 시도
+    } catch (err) {
+      return { id: IMAGE_MODEL, mode: 'predict' }; // 목록 조회 자체가 실패해도 생성은 기본값으로 시도해봅니다.
+    }
+  }
+
+  // 대표 이미지 한 장만 보고 제품명을 추천받는 가벼운 호출입니다. (전체 분석과 별개로,
+  // 2단계에서 즉시 제품명 칸을 채워주기 위한 용도)
+  async function suggestProductName(mainImage) {
+    const schema = {
+      type: 'OBJECT',
+      properties: {
+        productName: { type: 'STRING', description: '온라인 쇼핑몰 상세페이지에 쓸 간결한 한국어 제품명 (20자 내외)' },
+      },
+      required: ['productName'],
+    };
+    const generationConfig = {
+      responseMimeType: 'application/json',
+      responseSchema: schema,
+      temperature: 0.6,
+      maxOutputTokens: 256,
+    };
+    if (/gemini-(2\.5|3)/.test(TEXT_MODEL)) {
+      generationConfig.thinkingConfig = { thinkingBudget: 0 };
+    }
+    const res = await postJson(`${API_BASE}/models/${TEXT_MODEL}:generateContent?key=${encodeURIComponent(state.apiKey)}`, {
+      contents: [{
+        role: 'user',
+        parts: [
+          { text: '이 이미지 속 제품을 보고, 온라인 쇼핑몰 상세페이지에 쓸 수 있는 간결한 한국어 제품명을 하나 제안해주세요. 브랜드를 알 수 없다면 종류·스타일·색상 위주로 작성하세요. 반드시 지정된 JSON 스키마로만 응답하세요.' },
+          { inline_data: { mime_type: mainImage.mime, data: mainImage.base64 } },
+        ],
+      }],
+      generationConfig,
+    }, 30000);
+
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      throw new Error((errBody?.error?.message || `제품명 추천 실패 (HTTP ${res.status})`) + ` (모델: ${TEXT_MODEL})`);
+    }
+    const data = await res.json();
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!text) throw new Error('AI 응답에서 제품명을 찾을 수 없습니다.');
+    const parsed = JSON.parse(text);
+    return (parsed.productName || '').trim();
+  }
+
+  let suggestingName = false;
+  // force=false: 대표 이미지가 새로 지정될 때 자동으로 시도 (제품명 칸이 비어있을 때만, 실패해도 조용히 넘어감)
+  // force=true : "AI 추천" 버튼을 직접 눌렀을 때 (항상 덮어쓰고, 실패하면 토스트로 알림)
+  async function maybeSuggestProductName(force = false) {
+    if (!state.apiKey) {
+      if (force) showToast('상단에 Google AI Studio API 키를 먼저 입력해주세요.');
+      return;
+    }
+    if (state.mainIndex === null || !state.images[state.mainIndex]) {
+      if (force) showToast('대표 이미지를 먼저 올려주세요.');
+      return;
+    }
+    if (!force && productNameInput.value.trim() !== '') return;
+    if (suggestingName) return;
+
+    suggestingName = true;
+    suggestNameBtn.disabled = true;
+    nameSuggestStatus.classList.remove('hidden');
+    nameSuggestStatus.textContent = '✨ AI가 이미지를 보고 제품명을 분석하고 있어요...';
+    try {
+      const name = await suggestProductName(state.images[state.mainIndex]);
+      if (name && (force || productNameInput.value.trim() === '')) {
+        productNameInput.value = name;
+        state.productName = name;
+        updateNextButtonState();
+        nameSuggestStatus.textContent = '✨ AI가 추천한 제품명이에요. 자유롭게 수정하세요.';
+        setTimeout(() => nameSuggestStatus.classList.add('hidden'), 4000);
+      } else {
+        nameSuggestStatus.classList.add('hidden');
+      }
+    } catch (err) {
+      console.error('[SSAKA STUDIO] 제품명 추천 실패:', err);
+      nameSuggestStatus.classList.add('hidden');
+      if (force) showToast('제품명 추천에 실패했어요: ' + err.message);
+    } finally {
+      suggestingName = false;
+      suggestNameBtn.disabled = false;
+    }
+  }
+
+  suggestNameBtn.addEventListener('click', () => maybeSuggestProductName(true));
+
+  async function analyzeProduct(mood, orderedImages) {
+    const schema = {
+      type: 'OBJECT',
+      properties: {
+        usp: { type: 'ARRAY', items: { type: 'STRING' }, description: '핵심 셀링포인트 3~5개' },
+        headline: { type: 'STRING', description: '상세페이지 상단 헤드카피' },
+        subheadline: { type: 'STRING', description: '헤드카피를 보완하는 서브카피' },
+        description: { type: 'STRING', description: '2~3문단의 상세 설명문' },
+        features: {
+          type: 'ARRAY',
+          items: {
+            type: 'OBJECT',
+            properties: {
+              title: { type: 'STRING' },
+              desc: { type: 'STRING' },
+            },
+            required: ['title', 'desc'],
+          },
+        },
+        imagePrompt: { type: 'STRING', description: 'Imagen에 전달할 영문 이미지 생성 프롬프트' },
+      },
+      required: ['usp', 'headline', 'subheadline', 'description', 'features', 'imagePrompt'],
+    };
+
+    const parts = [{ text: buildAnalysisPrompt(mood) }];
+    orderedImages.forEach((img) => {
+      parts.push({ inline_data: { mime_type: img.mime, data: img.base64 } });
+    });
+
+    const generationConfig = {
+      responseMimeType: 'application/json',
+      responseSchema: schema,
+      temperature: 0.9,
+      maxOutputTokens: 4096,
+    };
+    // gemini-2.5 / 3 계열은 기본적으로 확장 사고(thinking)가 켜져 있어 응답이 수십 초 이상
+    // 걸릴 수 있습니다. 분석 태스크는 사고 없이도 충분하므로 꺼서 체감 속도를 높입니다.
+    if (/gemini-(2\.5|3)/.test(TEXT_MODEL)) {
+      generationConfig.thinkingConfig = { thinkingBudget: 0 };
+    }
+
+    const res = await postJson(`${API_BASE}/models/${TEXT_MODEL}:generateContent?key=${encodeURIComponent(state.apiKey)}`, {
+      contents: [{ role: 'user', parts }],
+      generationConfig,
+    }, 60000);
+
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      throw new Error((errBody?.error?.message || `텍스트 분석 요청 실패 (HTTP ${res.status})`) + ` (모델: ${TEXT_MODEL})`);
+    }
+    const data = await res.json();
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!text) throw new Error('AI 응답에서 분석 결과를 찾을 수 없습니다.');
+    try {
+      return JSON.parse(text);
+    } catch (e) {
+      throw new Error('AI 응답을 JSON으로 해석하지 못했습니다.');
+    }
+  }
+
+  /* =========================================================
+   * 9. Imagen 태스크 B — 이미지 생성
+   * =======================================================*/
+  // 커스텀 레퍼런스를 실제 이미지로 첨부할 수 없는 predict(Imagen) 모드에서는, 레퍼런스 이미지를
+  // Gemini Vision으로 먼저 "글로" 묘사해서(제품/인물은 언급하지 않고 배경·조명·톤만) 프리셋 무드의
+  // style 텍스트와 동일한 방식으로 사용합니다.
+  async function describeReferenceStyle(refImage) {
+    const schema = {
+      type: 'OBJECT',
+      properties: {
+        styleDescription: { type: 'STRING', description: '배경의 재질·색감·조명·분위기·구도만 영문으로 상세히 묘사 (제품/인물 언급 금지)' },
+      },
+      required: ['styleDescription'],
+    };
+    const generationConfig = {
+      responseMimeType: 'application/json',
+      responseSchema: schema,
+      temperature: 0.5,
+      maxOutputTokens: 300,
+    };
+    if (/gemini-(2\.5|3)/.test(TEXT_MODEL)) {
+      generationConfig.thinkingConfig = { thinkingBudget: 0 };
+    }
+    const res = await postJson(`${API_BASE}/models/${TEXT_MODEL}:generateContent?key=${encodeURIComponent(state.apiKey)}`, {
+      contents: [{
+        role: 'user',
+        parts: [
+          { text: '이 이미지는 상품 사진 촬영에 참고할 배경/조명/분위기 레퍼런스입니다. 이미지 속에 있는 제품이나 사람은 절대 언급하지 말고, 오직 배경의 질감, 색감, 조명 방식, 전체적인 무드와 구도만 영문으로 상세히 묘사해주세요. 이미지 생성 AI에게 배경 연출 지시로 바로 사용할 수 있도록 작성하세요. 반드시 지정된 JSON 스키마로만 응답하세요.' },
+          { inline_data: { mime_type: refImage.mime, data: refImage.base64 } },
+        ],
+      }],
+      generationConfig,
+    }, 30000);
+
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      throw new Error((errBody?.error?.message || `레퍼런스 분석 실패 (HTTP ${res.status})`) + ` (모델: ${TEXT_MODEL})`);
+    }
+    const data = await res.json();
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!text) throw new Error('AI 응답에서 배경 스타일 설명을 찾을 수 없습니다.');
+    const parsed = JSON.parse(text);
+    return (parsed.styleDescription || '').trim();
+  }
+
+  /* =========================================================
+   * 8-1. STEP 2 — 수동 AI 분석 미리보기 (Task A만 단독 실행)
+   * =======================================================*/
+  function renderStep2AnalysisPreview(a) {
+    step2AnalysisPreview.classList.remove('hidden');
+    step2AnalysisPreview.innerHTML = `
+      <div>
+        <p class="font-mono text-[10px] tracking-[0.15em] text-brand-600 mb-1.5">HEADLINE</p>
+        <p class="font-bold text-lg leading-snug">${escapeHtml(a.headline)}</p>
+      </div>
+      <div>
+        <p class="font-mono text-[10px] tracking-[0.15em] text-brand-600 mb-1.5">SUBHEADLINE</p>
+        <p class="text-sm text-slate-600 leading-relaxed">${escapeHtml(a.subheadline)}</p>
+      </div>
+      <div>
+        <p class="font-mono text-[10px] tracking-[0.15em] text-brand-600 mb-2">USP</p>
+        <div class="flex flex-wrap gap-1.5">
+          ${a.usp.map((u) => `<span class="px-2.5 py-1 rounded-full bg-brand-50 text-brand-700 text-[12px] font-semibold">${escapeHtml(u)}</span>`).join('')}
+        </div>
+      </div>
+      <div>
+        <p class="font-mono text-[10px] tracking-[0.15em] text-brand-600 mb-1.5">DESCRIPTION</p>
+        <p class="text-sm text-slate-600 leading-relaxed" style="white-space:pre-line;">${escapeHtml(a.description)}</p>
+      </div>
+      <div>
+        <p class="font-mono text-[10px] tracking-[0.15em] text-brand-600 mb-2">FEATURES</p>
+        <div class="grid sm:grid-cols-2 gap-3">
+          ${a.features.map((f) => `
+            <div class="rounded-xl bg-slate-50 p-4">
+              <p class="font-semibold text-sm mb-1">${escapeHtml(f.title)}</p>
+              <p class="text-xs text-slate-500 leading-relaxed">${escapeHtml(f.desc)}</p>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  async function handleManualAnalyze() {
+    if (!state.apiKey) {
+      showToast('상단에 Google AI Studio API 키를 먼저 입력해주세요.');
+      return;
+    }
+    const mood = getSelectedMood();
+    if (!mood) {
+      showToast('배경 무드를 먼저 선택해주세요.');
+      goToStep(1);
+      return;
+    }
+    if (state.mainIndex === null || !state.images[state.mainIndex]) {
+      showToast('대표 이미지를 먼저 올려주세요.');
+      return;
+    }
+
+    manualAnalyzeBtn.disabled = true;
+    manualAnalyzeBtn.textContent = '분석 중...';
+    step2AnalysisPreview.classList.remove('hidden');
+    step2AnalysisPreview.innerHTML = `
+      <div class="flex flex-col items-center justify-center py-10 text-center">
+        <div class="spinner mb-5" style="width:36px;height:36px;"></div>
+        <p class="font-mono text-xs tracking-[0.2em] text-brand-600 uppercase mb-1.5">Analyzing</p>
+        <p class="text-slate-500 text-sm">AI가 이미지를 분석하고 카피를 작성하고 있어요...</p>
+      </div>
+    `;
+    try {
+      const orderedImages = [
+        state.images[state.mainIndex],
+        ...state.images.filter((img, i) => i !== state.mainIndex && img),
+      ];
+      const analysis = await analyzeProduct(mood, orderedImages);
+      state.analysis = analysis;
+      renderStep2AnalysisPreview(analysis);
+    } catch (err) {
+      console.error('[SSAKA STUDIO] 수동 분석 실패:', err);
+      showToast('AI 분석에 실패했어요: ' + err.message);
+      step2AnalysisPreview.classList.add('hidden');
+      step2AnalysisPreview.innerHTML = '';
+    } finally {
+      manualAnalyzeBtn.disabled = false;
+      manualAnalyzeBtn.textContent = '🔍 AI 분석 미리보기';
+    }
+  }
+  manualAnalyzeBtn.addEventListener('click', handleManualAnalyze);
+
+
+  // chat 모드 전용: 실제 제품 사진(첫 번째 첨부 이미지)을 그대로 보존하면서
+  // 배경만 새로 그리도록 지시하는 "합성형" 프롬프트입니다.
+  function buildProductCompositePrompt(analysis, mood) {
+    const backgroundInstruction = mood.isCustom
+      ? 'You MUST completely replace the original background from the first image — do not keep any part of it. For the new setting, use the second attached reference image as the actual environment — match its background, walls/floor, lighting direction and color temperature, and any display fixtures such as a clothing rack, hanger, or shelf, so the product looks like it was genuinely photographed in that exact space. Do not reproduce any product, person, text, or logo that appears in that reference image — only borrow its environment, fixtures and lighting. Cast a realistic contact shadow and any reflections consistent with that scene\'s light source, and match the camera angle, perspective and scale so the product sits naturally in the space instead of looking like a flat cutout pasted on top.'
+      : `You MUST completely replace the original background from the first image — do not keep any part of it. For the new background, use this style: ${mood.style}. Cast a realistic contact shadow consistent with the described lighting so the product looks naturally placed in the scene rather than pasted on.`;
+    return [
+      'The first attached image shows the exact real product. Preserve its precise shape, color, material texture, proportions and every visible detail exactly as shown — do not alter, redesign or reinterpret the product in any way.',
+      'Place this exact product into a new professional product photography scene, blending it in as naturally and photorealistically as possible — this should read as one single cohesive photograph, never as a cutout composited on top of a background.',
+      backgroundInstruction,
+      'Match perspective, scale, lighting direction, color temperature and shadow softness precisely between the product and the surrounding scene.',
+      analysis.imagePrompt ? `Additional scene notes: ${analysis.imagePrompt}` : '',
+      'The product must be large and have strong visual presence, occupying roughly 65-75% of the frame\'s vertical height. Position it in the lower portion of the square frame, leaving open space above for headline text placement.',
+      'Square 1:1 frame, photorealistic, ultra sharp focus, high detail, no text, no watermark, no logo, no human face, no added props.',
+    ].filter(Boolean).join(' ');
+  }
+
+  // predict(Imagen) 모드 전용: 이미지 첨부가 불가능하므로 텍스트 설명만으로 연출컷을 그립니다.
+  const PRODUCT_SIZE_POSITION_TEXT = 'the product must be large and have strong visual presence, occupying roughly 65-75% of the frame\'s vertical height, positioned in the lower portion of the square frame with open space above for headline text';
+  function buildImagenPrompt(analysis, mood, hasAttachedReference) {
+    if (hasAttachedReference) {
+      return [
+        analysis.imagePrompt,
+        'use the attached reference image only for background composition, lighting, color palette and overall mood — do not reproduce any product, person, text or logo that appears in the reference image',
+        `professional e-commerce product photography, ${PRODUCT_SIZE_POSITION_TEXT}, square 1:1 frame, photorealistic, ultra sharp focus, high detail, no text, no watermark, no logo, no human face`,
+      ].filter(Boolean).join(', ');
+    }
+    if (mood.isCustom && mood.style) {
+      // 커스텀 레퍼런스(텍스트 전용 모드)는 배경 지시를 맨 앞에 강하게 못박아야, 뒤에 붙는
+      // 다른 문구에 묻혀서 "배경이 안 바뀐 것처럼" 나오는 걸 방지할 수 있습니다.
+      return [
+        `The background/setting MUST be exactly this: ${mood.style}. This is a strict requirement — do not use any other background.`,
+        analysis.imagePrompt,
+        `professional e-commerce product photography, ${PRODUCT_SIZE_POSITION_TEXT}, square 1:1 frame, photorealistic, ultra sharp focus, high detail, no text, no watermark, no logo, no human face`,
+      ].filter(Boolean).join(' ');
+    }
+    return [
+      analysis.imagePrompt,
+      mood.style,
+      `professional e-commerce product photography, ${PRODUCT_SIZE_POSITION_TEXT}, square 1:1 frame, photorealistic, ultra sharp focus, high detail, no text, no watermark, no logo, no human face`,
+    ].filter(Boolean).join(', ');
+  }
+
+  async function generateThumbnailPredict(prompt, modelId) {
+    const res = await postJson(`${API_BASE}/models/${modelId}:predict?key=${encodeURIComponent(state.apiKey)}`, {
+      instances: [{ prompt }],
+      parameters: { sampleCount: 1, aspectRatio: '1:1' },
+    }, 60000);
+
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      if (res.status === 404) {
+        throw new Error(`이미지 생성 모델(${modelId})을 이 API 키로 사용할 수 없어요. "고급 설정 → 사용 가능한 이미지 모델 확인하기"로 실제 접근 가능한 모델을 확인해보세요.`);
+      }
+      throw new Error((errBody?.error?.message || `이미지 생성 요청 실패 (HTTP ${res.status})`) + ` (모델: ${modelId}, predict)`);
+    }
+    const data = await res.json();
+    const pred = data?.predictions?.[0];
+    if (!pred?.bytesBase64Encoded) throw new Error('이미지 생성 결과가 비어있습니다. 계정에 이미지 생성 결제(Billing)가 활성화되어 있는지 확인해주세요.');
+    const mime = pred.mimeType || 'image/png';
+    return `data:${mime};base64,${pred.bytesBase64Encoded}`;
+  }
+
+  async function generateThumbnailChat(prompt, modelId, images) {
+    const parts = [{ text: prompt }];
+    (images || []).forEach((img) => {
+      if (img) parts.push({ inline_data: { mime_type: img.mime, data: img.base64 } });
+    });
+    const res = await postJson(`${API_BASE}/models/${modelId}:generateContent?key=${encodeURIComponent(state.apiKey)}`, {
+      contents: [{ role: 'user', parts }],
+      generationConfig: { responseModalities: ['TEXT', 'IMAGE'] },
+    }, 60000);
+
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      if (res.status === 404) {
+        throw new Error(`이미지 생성 모델(${modelId})을 이 API 키로 사용할 수 없어요. "고급 설정 → 사용 가능한 이미지 모델 확인하기"로 실제 접근 가능한 모델을 확인해보세요.`);
+      }
+      throw new Error((errBody?.error?.message || `이미지 생성 요청 실패 (HTTP ${res.status})`) + ` (모델: ${modelId}, chat)`);
+    }
+    const data = await res.json();
+    const resParts = data?.candidates?.[0]?.content?.parts || [];
+    const imagePart = resParts.find((p) => p.inlineData || p.inline_data);
+    const inline = imagePart?.inlineData || imagePart?.inline_data;
+    if (!inline?.data) throw new Error('이미지 생성 결과가 비어있습니다. 계정에 이미지 생성 결제(Billing)가 활성화되어 있는지 확인해주세요.');
+    const mime = inline.mimeType || inline.mime_type || 'image/png';
+    return `data:${mime};base64,${inline.data}`;
+  }
+
+  // 제품 사진에서 배경만 제거하고 투명 배경 PNG로 만듭니다. (chat 모드 전용)
+  // 레퍼런스 배경을 AI가 재해석해서 다시 그리지 않고, 실제 배경 사진을 그대로 쓰기 위한 용도입니다.
+  async function removeProductBackground(productImage, modelId) {
+    const prompt = 'Remove the background from this product photo completely. Keep the exact same product — unchanged shape, color, material, and every detail — and output it isolated on a fully transparent background (PNG with alpha channel). Do not add any new background, floor, shadow, or reflection. Do not alter the product in any way, only remove what is behind it.';
+    const parts = [
+      { text: prompt },
+      { inline_data: { mime_type: productImage.mime, data: productImage.base64 } },
+    ];
+    const res = await postJson(`${API_BASE}/models/${modelId}:generateContent?key=${encodeURIComponent(state.apiKey)}`, {
+      contents: [{ role: 'user', parts }],
+      generationConfig: { responseModalities: ['TEXT', 'IMAGE'] },
+    }, 60000);
+
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      throw new Error((errBody?.error?.message || `배경 제거 요청 실패 (HTTP ${res.status})`) + ` (모델: ${modelId}, chat)`);
+    }
+    const data = await res.json();
+    const resParts = data?.candidates?.[0]?.content?.parts || [];
+    const imagePart = resParts.find((p) => p.inlineData || p.inline_data);
+    const inline = imagePart?.inlineData || imagePart?.inline_data;
+    if (!inline?.data) throw new Error('배경 제거 결과가 비어있습니다.');
+    const mime = inline.mimeType || inline.mime_type || 'image/png';
+    return `data:${mime};base64,${inline.data}`;
+  }
+
+  // 레퍼런스 배경 사진을 픽셀 그대로 재사용하고, 배경이 제거된 제품 컷아웃을 그 위에 얹습니다.
+  // (AI가 배경을 다시 그리지 않으므로 사용자가 올린 배경 이미지가 100% 그대로 유지됩니다.)
+  function compositeOntoReferenceBackground(backgroundDataUrl, cutoutDataUrl, size = 1000) {
+    return new Promise((resolve, reject) => {
+      const bgImg = new Image();
+      bgImg.onload = () => {
+        const cutImg = new Image();
+        cutImg.onload = () => {
+          try {
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+
+            // 1. 배경: 레퍼런스 이미지를 자르지 않고 꽉 채움 (cover)
+            const bgScale = Math.max(size / bgImg.naturalWidth, size / bgImg.naturalHeight);
+            const bgW = bgImg.naturalWidth * bgScale;
+            const bgH = bgImg.naturalHeight * bgScale;
+            ctx.drawImage(bgImg, (size - bgW) / 2, (size - bgH) / 2, bgW, bgH);
+
+            // 2. 제품 배치 계산: 가로·세로 둘 다 캔버스 안에 들어오도록 비율을 유지한 채 중앙에 맞춥니다.
+            //    (높이 기준으로만 맞추면 옆으로 넓은 제품, 예: 선글라스가 캔버스 폭을 넘어가서
+            //     양옆이 잘려나갈 수 있었어요. 가로·세로 중 더 빡빡한 쪽에 맞춰 축소합니다.)
+            const maxProdH = size * 1.0;
+            const maxProdW = size * 1.0;
+            const prodScale = Math.min(maxProdH / cutImg.naturalHeight, maxProdW / cutImg.naturalWidth);
+            const prodW = cutImg.naturalWidth * prodScale;
+            const prodH = cutImg.naturalHeight * prodScale;
+            const px = (size - prodW) / 2;
+            const py = (size - prodH) / 2;
+            const groundY = py + prodH;
+
+            // 3. 제품이 놓일 자리 주변만 국소적으로 샘플링해서 밝기를 추정합니다. 실패해도 기본값으로 계속 진행해요.
+            let avgBrightness = 0.55;
+            try {
+              const sw = 24, sh = 24;
+              const sampleCanvas = document.createElement('canvas');
+              sampleCanvas.width = sw;
+              sampleCanvas.height = sh;
+              const sctx = sampleCanvas.getContext('2d');
+              const sampleH = Math.max(1, Math.min(size - py, prodH));
+              sctx.drawImage(canvas, px, py, prodW, sampleH, 0, 0, sw, sh);
+              const data = sctx.getImageData(0, 0, sw, sh).data;
+              let sum = 0, count = 0;
+              for (let i = 0; i < data.length; i += 4) {
+                sum += (data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114) / 255;
+                count++;
+              }
+              if (count > 0) avgBrightness = sum / count;
+            } catch (e) {
+              // 샘플링 실패는 무시하고 기본 밝기값으로 계속 진행합니다.
+            }
+
+            // 4. 바닥에 닿는 타원형 컨택 섀도우 (단일 레이어 — 여러 겹을 쌓지 않아 렌더링이 안정적입니다)
+            ctx.save();
+            ctx.filter = `blur(${(size * 0.02).toFixed(1)}px)`;
+            ctx.fillStyle = 'rgba(0,0,0,0.3)';
+            ctx.beginPath();
+            ctx.ellipse(size / 2, groundY, prodW * 0.34, size * 0.024, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+
+            // 5. 배경 밝기에 맞춰 톤을 살짝 보정한 제품을, 은은한 그림자와 함께 배치
+            const brightnessAdj = (0.9 + avgBrightness * 0.25).toFixed(2);
+            ctx.save();
+            ctx.filter = `brightness(${brightnessAdj}) saturate(0.97)`;
+            ctx.shadowColor = 'rgba(0,0,0,0.2)';
+            ctx.shadowBlur = size * 0.018;
+            ctx.shadowOffsetY = size * 0.008;
+            ctx.drawImage(cutImg, px, py, prodW, prodH);
+            ctx.restore();
+
+            resolve(canvas.toDataURL('image/png'));
+          } catch (err) {
+            reject(err instanceof Error ? err : new Error('이미지 합성 중 오류가 발생했습니다.'));
+          }
+        };
+        cutImg.onerror = () => reject(new Error('제품 컷아웃 이미지를 불러오지 못했습니다.'));
+        cutImg.src = cutoutDataUrl;
+      };
+      bgImg.onerror = () => reject(new Error('레퍼런스 배경 이미지를 불러오지 못했습니다.'));
+      bgImg.src = backgroundDataUrl;
+    });
+  }
+
+  // 프리셋 무드의 swatch(CSS 그라디언트 문자열)에서 색상을 뽑아내 캔버스 배경으로 그립니다.
+  // (AI 호출 없이 B안 배경을 만들기 위한 용도 — swatch 안의 hex 색상들을 순서대로 이어 그립니다.)
+  function renderSwatchBackground(ctx, swatchCss, size) {
+    const colors = (swatchCss && swatchCss.match(/#[0-9A-Fa-f]{3,8}/g)) || ['#F3F4F6', '#E2E4E9'];
+    const grad = ctx.createLinearGradient(0, 0, size, size); // 135deg 대각선 방향을 근사합니다.
+    if (colors.length === 1) {
+      grad.addColorStop(0, colors[0]);
+      grad.addColorStop(1, colors[0]);
+    } else {
+      colors.forEach((c, i) => grad.addColorStop(i / (colors.length - 1), c));
+    }
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, size, size);
+  }
+
+  // 투명 배경 PNG에서 실제 제품이 그려진 영역(불투명 픽셀의 바운딩 박스)만 찾아냅니다.
+  // 파일 자체는 정사각형(1000×1000)이어도 실제 제품은 그 안에 여백을 두고 작게 그려진
+  // 경우가 많은데, 이 여백까지 통째로 위/아래로 움직이면 시각적으로 거의 차이가 없어
+  // 보입니다. 그래서 "제품이 실제로 차지하는 영역"만 잘라내 그 영역을 기준으로 배치합니다.
+  function getOpaqueBoundingBox(img) {
+    const w = img.naturalWidth, h = img.naturalHeight;
+    const full = { x: 0, y: 0, width: w, height: h };
+    try {
+      const probe = document.createElement('canvas');
+      probe.width = w;
+      probe.height = h;
+      const pctx = probe.getContext('2d');
+      pctx.drawImage(img, 0, 0);
+      const data = pctx.getImageData(0, 0, w, h).data;
+      const alphaThreshold = 10;
+      let minX = w, minY = h, maxX = -1, maxY = -1;
+      for (let y = 0; y < h; y++) {
+        const rowOffset = y * w;
+        for (let x = 0; x < w; x++) {
+          if (data[(rowOffset + x) * 4 + 3] > alphaThreshold) {
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
+          }
+        }
+      }
+      if (maxX < 0) return full; // 완전히 투명한 이미지라면 원본 그대로 사용
+      return { x: minX, y: minY, width: maxX - minX + 1, height: maxY - minY + 1 };
+    } catch (err) {
+      return full; // 픽셀 접근이 막혀있는 등 예외 상황이면 원본 전체를 그대로 사용
+    }
+  }
+
+  // B안: AI 이미지 생성 없이, 업로드한 제품 사진을 그대로 배경 위에 얹습니다.
+  // - 커스텀(업로드) 무드: 등록된 배경 사진을 그대로 사용
+  // - 프리셋 무드: swatch 그라디언트를 캔버스로 그려서 배경으로 사용
+  // position: 0(맨 위) ~ 100(맨 아래) — 프레임 안에서 제품을 배치할 높이를 연속값으로 지정합니다.
+  function compositeDirectOntoBackground(mood, productDataUrl, position = 50, size = 1000) {
+    return new Promise((resolve, reject) => {
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+
+      const drawProduct = () => {
+        const prodImg = new Image();
+        prodImg.onload = () => {
+          try {
+            // 여백을 뺀 "실제 제품 영역"을 썸네일 폭(size)의 90%에 맞춰 채웁니다
+            // — 좌우로 5%씩 살짝 여백을 두고 가운데 정렬, 원본 비율은 그대로 유지한 채 폭 기준으로 스케일합니다.
+            // 위치(0~100)는 썸네일 세로 크기(size) 기준 앵커 기준점을 0(맨 위)~100(맨 아래) 사이에서
+            // 선형으로 보간합니다: 0 → 맨 위 정렬, 50 → 정중앙, 100 → 맨 아래 정렬.
+            const box = getOpaqueBoundingBox(prodImg);
+            const PRODUCT_WIDTH_RATIO = 0.90;
+            const prodW = size * PRODUCT_WIDTH_RATIO;
+            const prodScale = prodW / box.width;
+            const prodH = box.height * prodScale;
+            const px = (size - prodW) / 2;
+            const t = Math.min(100, Math.max(0, Number(position))) / 100;
+            const py = t * (size - prodH);
+
+            // 업로드하신 제품 컷은 이미 실제 촬영된 그림자가 포함돼 있는 경우가 많아서,
+            // 여기서 별도의 인위적인 그림자를 추가로 그리지 않습니다 (추가하면 그림자가 두 겹으로 겹쳐 보여요).
+            ctx.drawImage(prodImg, box.x, box.y, box.width, box.height, px, py, prodW, prodH);
+
+            resolve(canvas.toDataURL('image/png'));
+          } catch (err) {
+            reject(err instanceof Error ? err : new Error('이미지 합성 중 오류가 발생했습니다.'));
+          }
+        };
+        prodImg.onerror = () => reject(new Error('제품 이미지를 불러오지 못했습니다.'));
+        prodImg.src = productDataUrl;
+      };
+
+      if (mood && mood.isCustom && mood.referenceImage) {
+        const bgImg = new Image();
+        bgImg.onload = () => {
+          const bgScale = Math.max(size / bgImg.naturalWidth, size / bgImg.naturalHeight);
+          const bgW = bgImg.naturalWidth * bgScale;
+          const bgH = bgImg.naturalHeight * bgScale;
+          ctx.drawImage(bgImg, (size - bgW) / 2, (size - bgH) / 2, bgW, bgH);
+          drawProduct();
+        };
+        bgImg.onerror = () => reject(new Error('배경 이미지를 불러오지 못했습니다.'));
+        bgImg.src = mood.referenceImage.dataUrl;
+      } else {
+        renderSwatchBackground(ctx, mood && mood.swatch, size);
+        drawProduct();
+      }
+    });
+  }
+
+  async function generateThumbnail(prompt, modelInfo, images) {
+    return modelInfo.mode === 'chat'
+      ? generateThumbnailChat(prompt, modelInfo.id, images)
+      : generateThumbnailPredict(prompt, modelInfo.id);
+  }
+
+  /* =========================================================
+   * 10. 생성 오케스트레이션
+   * =======================================================*/
+  function setLoading(stage) {
+    if (stage === 'analyze') {
+      loadingText.textContent = 'Analyzing';
+      loadingSubText.textContent = '제품 이미지를 분석하고 카피를 작성하고 있어요...';
+    } else if (stage === 'style') {
+      loadingText.textContent = 'Styling';
+      loadingSubText.textContent = '레퍼런스 이미지의 배경 스타일을 분석하고 있어요...';
+    } else if (stage === 'cutout') {
+      loadingText.textContent = 'Cutting Out';
+      loadingSubText.textContent = '제품만 깔끔하게 배경을 제거하고 있어요...';
+    } else if (stage === 'image') {
+      loadingText.textContent = 'Generating';
+      loadingSubText.textContent = '선택한 무드에 맞는 연출컷을 그리고 있어요...';
+    }
+  }
+
+  $('#cancelGenerateBtn').addEventListener('click', () => {
+    if (currentController) currentController.abort();
+    loadingView.classList.add('hidden');
+    goToStep(2);
+  });
+
+  async function handleGenerate() {
+    if (!state.apiKey) {
+      showToast('상단에 Google AI Studio API 키를 먼저 입력해주세요.');
+      return;
+    }
+    const mood = getSelectedMood();
+    if (!mood) {
+      showToast('배경 무드를 먼저 선택해주세요.');
+      goToStep(1);
+      return;
+    }
+
+    goToStep(3);
+    resultsView.classList.add('hidden');
+    loadingView.classList.remove('hidden');
+    setLoading('analyze');
+
+    try {
+      const orderedImages = [
+        state.images[state.mainIndex],
+        ...state.images.filter((img, i) => i !== state.mainIndex && img),
+      ];
+
+      const analysis = await analyzeProduct(mood, orderedImages);
+      state.analysis = analysis;
+
+      let thumbDataUrl;
+      let isTrueComposite = false;
+      let isDirectComposite = false;
+      let modelInfo = null;
+      let usedModelLabel;
+
+      if (state.compositeMode === 'B') {
+        // B안: AI 이미지 생성 호출 없이, 업로드한 제품 사진을 선택한 배경 위에 그대로 합성합니다.
+        setLoading('image');
+        const mainImg = state.images[state.mainIndex];
+        if (!mainImg.hasTransparency) {
+          showToast('대표 이미지가 투명 배경(누끼) PNG가 아니에요. 원본 배경이 함께 보일 수 있어요.');
+        }
+        thumbDataUrl = await compositeDirectOntoBackground(mood, mainImg.dataUrl, state.productPosition);
+        isDirectComposite = true;
+        usedModelLabel = '직접 합성 (AI 미사용)';
+      } else {
+        modelInfo = await resolveImageModel();
+
+        if (mood.isCustom && modelInfo.mode === 'chat') {
+          // 진짜 합성: 레퍼런스 배경 사진은 픽셀 그대로 재사용하고, 제품만 배경을 제거해서
+          // 그 위에 얹습니다. AI가 장면 전체를 다시 그리지 않으므로 배경이 절대 바뀌지 않아요.
+          const mainImg = state.images[state.mainIndex];
+          let cutoutDataUrl;
+          if (mainImg.hasTransparency) {
+            // 이미 배경이 투명하게 제거된 PNG를 올리셨다면, 다시 AI로 잘라내지 않고 그대로 씁니다.
+            // (한 번 더 처리하면 오히려 경계가 덜 깔끔해질 수 있어요.)
+            cutoutDataUrl = mainImg.dataUrl;
+          } else {
+            setLoading('cutout');
+            cutoutDataUrl = await removeProductBackground(mainImg, modelInfo.id);
+          }
+          setLoading('image');
+          thumbDataUrl = await compositeOntoReferenceBackground(mood.referenceImage.dataUrl, cutoutDataUrl);
+          isTrueComposite = true;
+        } else {
+          let prompt;
+          let attachImages = null;
+          if (modelInfo.mode === 'chat') {
+            // chat 모드: 실제 대표 이미지를 그대로 첨부해 "제품은 그대로, 배경만 새로" 연출합니다.
+            attachImages = [state.images[state.mainIndex]];
+            prompt = buildProductCompositePrompt(analysis, mood);
+          } else {
+            // predict(Imagen) 모드: 이미지 첨부가 불가능해 텍스트 설명만으로 연출합니다.
+            let hasAttachedReference = false;
+            if (mood.isCustom && !mood.style) {
+              setLoading('style');
+              const styleDescription = await describeReferenceStyle(mood.referenceImage);
+              const refObj = state.customReferences.find((r) => r.id === mood.refId);
+              if (refObj) refObj.styleDescription = styleDescription;
+              saveCustomReferences();
+              mood.style = styleDescription;
+            }
+            prompt = buildImagenPrompt(analysis, mood, hasAttachedReference);
+          }
+          setLoading('image');
+          thumbDataUrl = await generateThumbnail(prompt, modelInfo, attachImages);
+        }
+        usedModelLabel = `${modelInfo.id} (${isTrueComposite ? '배경 그대로 합성' : modelInfo.mode === 'chat' ? 'Gemini 이미지생성' : 'Imagen'})`;
+      }
+
+      state.thumbnail = thumbDataUrl;
+      state.thumbnailIsComposite = modelInfo ? modelInfo.mode === 'chat' : false;
+      state.thumbnailIsTrueComposite = isTrueComposite;
+      state.thumbnailIsDirectComposite = isDirectComposite;
+      state.usedImageModel = usedModelLabel;
+
+      // 선택된 워터마크 로고가 있으면 대표 이미지(A/B 둘 다 있다면 둘 다)에 합성합니다.
+      if (state.selectedLogoId) {
+        const logo = state.logos.find((l) => l.id === state.selectedLogoId);
+        if (logo) {
+          try {
+            state.thumbnail = await applyWatermark(state.thumbnail, logo.dataUrl);
+          } catch (err) {
+            console.error('[SSAKA STUDIO] 워터마크 적용 실패:', err);
+            // 실패해도 원본 썸네일은 그대로 사용하고 조용히 넘어갑니다.
+          }
+        }
+      }
+
+      renderResults(mood);
+      loadingView.classList.add('hidden');
+      resultsView.classList.remove('hidden');
+    } catch (err) {
+      console.error('[SSAKA STUDIO] 생성 실패:', err);
+      loadingView.classList.add('hidden');
+      showToast(err.message || '생성 중 오류가 발생했습니다.');
+      goToStep(2);
+    }
+  }
+
+  /* =========================================================
+   * 11. 결과 렌더링 (썸네일 / 카피 / 상세페이지 DOM)
+   * =======================================================*/
+  function renderResults() {
+    resultThumb.src = state.thumbnail;
+    $('#usedModelLabel').textContent = state.usedImageModel || '-';
+    $('#thumbnailDisclaimer').textContent = state.thumbnailIsDirectComposite
+      ? '* 업로드하신 제품 사진을 AI 재해석 없이 그대로 배경 위에 합성했어요. "제품 위치" 슬라이더를 드래그해서 위/아래 위치를 즉시 바꿔볼 수 있어요.'
+      : state.thumbnailIsTrueComposite
+      ? '* 등록하신 배경 사진을 그대로 쓰고, 제품만 AI로 배경을 제거해서 얹었어요. 배경은 원본 그대로예요.'
+      : state.thumbnailIsComposite
+      ? '* 업로드하신 대표 이미지의 제품은 그대로 유지하고, 배경만 AI로 새로 연출했어요.'
+      : '* 이 모델에서는 실제 사진을 반영할 수 없어 AI가 텍스트만으로 새로 그린 연출컷이에요. 실제 제품과 디테일이 다를 수 있어요.';
+
+    thumbPositionControls.classList.toggle('hidden', !state.thumbnailIsDirectComposite);
+    if (state.thumbnailIsDirectComposite) updateThumbPositionSlider();
+
+    const a = state.analysis;
+    copyPreview.innerHTML = `
+      <div>
+        <p class="font-mono text-[10px] tracking-[0.15em] text-brand-600 mb-1.5">HEADLINE</p>
+        <p class="font-bold text-lg leading-snug">${escapeHtml(a.headline)}</p>
+      </div>
+      <div>
+        <p class="font-mono text-[10px] tracking-[0.15em] text-brand-600 mb-1.5">SUBHEADLINE</p>
+        <p class="text-sm text-slate-600 leading-relaxed">${escapeHtml(a.subheadline)}</p>
+      </div>
+      <div>
+        <p class="font-mono text-[10px] tracking-[0.15em] text-brand-600 mb-2">USP</p>
+        <div class="flex flex-wrap gap-1.5">
+          ${a.usp.map((u) => `<span class="px-2.5 py-1 rounded-full bg-brand-50 text-brand-700 text-[12px] font-semibold">${escapeHtml(u)}</span>`).join('')}
+        </div>
+      </div>
+    `;
+
+    const detailImages = state.images.filter((img, i) => i !== state.mainIndex && img);
+    detailCaptureA.innerHTML = buildLayoutA(a, detailImages);
+    detailCaptureB.innerHTML = buildLayoutB(a, detailImages);
+    detailCaptureC.innerHTML = buildLayoutC(a, detailImages);
+    detailCaptureD.innerHTML = buildLayoutD(a, detailImages);
+    setActiveLayout(state.activeLayout || 'A');
+  }
+
+  // B안(직접 합성) 결과에서 슬라이더 값(0~100)과 트랙 채움, 숫자 입력값을 state.productPosition에 맞춰 반영합니다.
+  function updateThumbPositionSlider() {
+    if (!thumbPositionSlider) return;
+    thumbPositionSlider.value = state.productPosition;
+    thumbPositionSlider.style.setProperty('--pos', state.productPosition + '%');
+    if (thumbPositionInput && document.activeElement !== thumbPositionInput) {
+      thumbPositionInput.value = state.productPosition;
+    }
+  }
+
+  // B안 결과의 제품 위치를 즉시 다시 계산합니다. AI 호출 없이 캔버스로만 재합성하므로 매우 빠릅니다.
+  async function regenerateDirectComposite(position) {
+    const mood = getSelectedMood();
+    if (!mood || !state.thumbnailIsDirectComposite) return;
+    state.productPosition = position;
+    updateThumbPositionSlider();
+    try {
+      const mainImg = state.images[state.mainIndex];
+      let thumbDataUrl = await compositeDirectOntoBackground(mood, mainImg.dataUrl, state.productPosition);
+      if (state.selectedLogoId) {
+        const logo = state.logos.find((l) => l.id === state.selectedLogoId);
+        if (logo) {
+          try {
+            thumbDataUrl = await applyWatermark(thumbDataUrl, logo.dataUrl);
+          } catch (err) {
+            console.error('[SSAKA STUDIO] 워터마크 적용 실패:', err);
+          }
+        }
+      }
+      state.thumbnail = thumbDataUrl;
+      renderResults();
+    } catch (err) {
+      showToast('제품 위치 변경 중 문제가 발생했어요: ' + err.message);
+    }
+  }
+
+  // 드래그(슬라이더)나 타이핑(숫자 입력) 도중에는 매번 재합성하지 않도록 살짝 디바운스하고,
+  // 손을 떼거나(change) 입력을 확정하면(blur/Enter) 최종값을 확실히 반영합니다.
+  let thumbPositionDebounceTimer = null;
+  function scheduleThumbPositionUpdate(rawValue, immediate) {
+    let value = Math.round(Number(rawValue));
+    if (Number.isNaN(value)) value = state.productPosition;
+    value = Math.min(100, Math.max(0, value));
+    if (thumbPositionSlider) {
+      thumbPositionSlider.value = value;
+      thumbPositionSlider.style.setProperty('--pos', value + '%');
+    }
+    if (thumbPositionDebounceTimer) clearTimeout(thumbPositionDebounceTimer);
+    if (value === state.productPosition) return;
+    if (immediate) {
+      regenerateDirectComposite(value);
+    } else {
+      thumbPositionDebounceTimer = setTimeout(() => regenerateDirectComposite(value), 120);
+    }
+  }
+
+  if (thumbPositionSlider) {
+    thumbPositionSlider.addEventListener('input', () => {
+      if (thumbPositionInput) thumbPositionInput.value = thumbPositionSlider.value;
+      scheduleThumbPositionUpdate(thumbPositionSlider.value, false);
+    });
+    thumbPositionSlider.addEventListener('change', () => {
+      scheduleThumbPositionUpdate(thumbPositionSlider.value, true);
+    });
+  }
+
+  if (thumbPositionInput) {
+    thumbPositionInput.addEventListener('input', () => {
+      if (thumbPositionInput.value === '') return; // 지우는 중엔 기다려요.
+      scheduleThumbPositionUpdate(thumbPositionInput.value, false);
+    });
+    thumbPositionInput.addEventListener('change', () => {
+      scheduleThumbPositionUpdate(thumbPositionInput.value, true);
+    });
+    thumbPositionInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        thumbPositionInput.blur();
+      }
+    });
+    thumbPositionInput.addEventListener('blur', () => {
+      // 값을 비운 채로 포커스를 떠나면 현재 위치값으로 되돌려 보여줍니다.
+      if (thumbPositionInput.value === '') thumbPositionInput.value = state.productPosition;
+    });
+  }
+
+
+  // 레이아웃 A — 매거진형: 풀블리드 히어로 이미지 + 알아보기 쉬운 좌우 교차 상세컷 배치
+  function buildLayoutA(a, detailImages) {
+    const pairCount = Math.min(a.features.length, detailImages.length);
+
+    const featureRows = a.features.slice(0, pairCount).map((f, i) => {
+      const reversed = i % 2 === 1;
+      return `
+        <div class="flex ${reversed ? 'flex-row-reverse' : ''} items-center gap-12">
+          <div class="w-[400px] h-[400px] rounded-2xl shrink-0" style="background-image:url('${detailImages[i].dataUrl}'); background-size:cover; background-position:center;"></div>
+          <div class="flex-1">
+            <p class="font-mono text-sm text-brand-600 mb-3 tracking-[0.1em]">DETAIL ${String(i + 1).padStart(2, '0')}</p>
+            <h3 class="text-3xl font-bold mb-4 leading-snug">${escapeHtml(f.title)}</h3>
+            <p class="text-base text-slate-500 leading-relaxed">${escapeHtml(f.desc)}</p>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    const remainingFeatures = a.features.slice(pairCount);
+    const remainingBlock = remainingFeatures.length ? `
+      <div class="grid ${remainingFeatures.length > 1 ? 'grid-cols-2' : 'grid-cols-1'} gap-6">
+        ${remainingFeatures.map((f) => `
+          <div class="rounded-2xl bg-slate-50 p-8" style="background-color:#F8FAFC;">
+            <h4 class="text-xl font-bold mb-2">${escapeHtml(f.title)}</h4>
+            <p class="text-sm text-slate-500 leading-relaxed">${escapeHtml(f.desc)}</p>
+          </div>
+        `).join('')}
+      </div>
+    ` : '';
+
+    return `
+      <div class="relative w-full" style="height:1000px; background-image:url('${state.thumbnail}'); background-size:cover; background-position:center;">
+        <div class="absolute inset-0" style="background:linear-gradient(to top, rgba(0,0,0,0.72), rgba(0,0,0,0.05) 55%, transparent 75%);"></div>
+        <div class="absolute bottom-0 left-0 right-0 p-16 text-white">
+          <h1 class="text-6xl font-extrabold leading-tight mb-4" style="max-width:820px;">${escapeHtml(a.headline)}</h1>
+          <p class="text-xl text-white/85" style="max-width:680px;">${escapeHtml(a.subheadline)}</p>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap gap-3 justify-center py-14 px-16 border-b border-slate-100" style="background-color:#ffffff;">
+        ${a.usp.map((u) => `<span class="px-5 py-2.5 rounded-full bg-brand-50 text-brand-700 font-semibold text-base" style="background-color:#EEF2FF;">${escapeHtml(u)}</span>`).join('')}
+      </div>
+
+      <div class="mx-auto py-16 px-10 text-center" style="max-width:720px; background-color:#ffffff;">
+        <p class="text-lg leading-relaxed text-slate-600" style="white-space:pre-line;">${escapeHtml(a.description)}</p>
+      </div>
+
+      <div class="px-16 pb-20 space-y-20" style="background-color:#ffffff;">
+        ${featureRows}
+        ${remainingBlock}
+      </div>
+    `;
+  }
+
+  // 레이아웃 B — 카드형: 여백 있는 프레임 이미지 + 스탯 바 + 2열 카드 그리드로 훨씬 밀도 높게 구성
+  function buildLayoutB(a, detailImages) {
+    const pairCount = Math.min(a.features.length, detailImages.length, 4);
+
+    const cards = a.features.slice(0, pairCount).map((f, i) => `
+      <div class="rounded-2xl border border-slate-200 overflow-hidden bg-white" style="background-color:#ffffff;">
+        <div class="w-full" style="height:260px; background-image:url('${detailImages[i].dataUrl}'); background-size:cover; background-position:center;"></div>
+        <div class="p-6">
+          <p class="font-mono text-[11px] text-brand-600 mb-2 tracking-[0.15em]">0${i + 1}</p>
+          <h4 class="text-xl font-bold mb-2 leading-snug">${escapeHtml(f.title)}</h4>
+          <p class="text-sm text-slate-500 leading-relaxed">${escapeHtml(f.desc)}</p>
+        </div>
+      </div>
+    `).join('');
+
+    const remainingCards = a.features.slice(pairCount).map((f) => `
+      <div class="rounded-2xl border border-slate-200 bg-slate-50 p-6" style="background-color:#F8FAFC;">
+        <h4 class="text-lg font-bold mb-2 leading-snug">${escapeHtml(f.title)}</h4>
+        <p class="text-sm text-slate-500 leading-relaxed">${escapeHtml(f.desc)}</p>
+      </div>
+    `).join('');
+
+    const uspCount = Math.min(a.usp.length, 4);
+    const uspColsClass = { 1: 'grid-cols-1', 2: 'grid-cols-2', 3: 'grid-cols-3', 4: 'grid-cols-4' }[uspCount] || 'grid-cols-4';
+
+    return `
+      <div class="px-16 pt-16 pb-10" style="background-color:#ffffff;">
+        <h1 class="text-5xl font-extrabold leading-tight mb-4" style="max-width:820px;">${escapeHtml(a.headline)}</h1>
+        <p class="text-lg text-slate-500" style="max-width:640px;">${escapeHtml(a.subheadline)}</p>
+      </div>
+
+      <div class="px-16 pb-14" style="background-color:#ffffff;">
+        <div class="w-full rounded-3xl border border-slate-200" style="height:560px; background-image:url('${state.thumbnail}'); background-size:cover; background-position:center;"></div>
+      </div>
+
+      <div class="grid ${uspColsClass} gap-px bg-slate-100 border-y border-slate-100" style="background-color:#E2E8F0;">
+        ${a.usp.slice(0, uspCount).map((u, i) => `
+          <div class="bg-ink text-white px-6 py-8 text-center" style="background-color:#0B1220;">
+            <p class="font-mono text-[10px] text-white/50 mb-2">POINT 0${i + 1}</p>
+            <p class="text-sm font-semibold leading-snug">${escapeHtml(u)}</p>
+          </div>
+        `).join('')}
+      </div>
+
+      <div class="px-16 py-14" style="background-color:#ffffff;">
+        <div class="border-l-4 border-brand-600 bg-brand-50 rounded-r-2xl px-8 py-7" style="max-width:820px; background-color:#EEF2FF;">
+          <p class="text-base leading-relaxed text-slate-700" style="white-space:pre-line;">${escapeHtml(a.description)}</p>
+        </div>
+      </div>
+
+      <div class="px-16 pb-16" style="background-color:#ffffff;">
+        <div class="grid grid-cols-2 gap-6">
+          ${cards}
+          ${remainingCards}
+        </div>
+      </div>
+    `;
+  }
+
+  // 레이아웃 C — 스퀘어그리드형: 대표컷·상세컷 모두 1:1 정사각형 비율로 통일한 룩북/인스타그램 그리드 스타일
+  function buildLayoutC(a, detailImages) {
+    const gridImages = detailImages.slice(0, 4);
+    const pairCount = Math.min(a.features.length, gridImages.length);
+
+    const gridTiles = gridImages.map((img, i) => {
+      const f = a.features[i];
+      return `
+      <div class="w-full" style="height:1000px; background-image:url('${img.dataUrl}'); background-size:cover; background-position:center;"></div>
+      ${f ? `
+      <div class="px-16 py-12 border-b border-slate-100" style="background-color:#ffffff;">
+        <p class="font-mono text-[11px] mb-3 tracking-[0.2em]" style="color:#2451FF;">DETAIL 0${i + 1}</p>
+        <h4 class="font-bold mb-3 leading-snug" style="color:#0B1220; font-size:28px; max-width:680px;">${escapeHtml(f.title)}</h4>
+        <p class="text-base leading-relaxed" style="color:#64748B; max-width:640px;">${escapeHtml(f.desc)}</p>
+      </div>
+      ` : ''}
+    `;
+    }).join('');
+
+    const remainingFeatures = a.features.slice(pairCount);
+    const remainingBlock = remainingFeatures.length ? `
+      <div class="px-16 py-16" style="background-color:#ffffff;">
+        <div class="grid ${remainingFeatures.length > 1 ? 'grid-cols-2' : 'grid-cols-1'} gap-x-10 gap-y-8">
+          ${remainingFeatures.map((f, i) => `
+            <div>
+              <p class="font-mono text-[11px] mb-1.5 tracking-[0.1em]" style="color:#2451FF;">0${pairCount + i + 1}</p>
+              <h4 class="text-lg font-bold mb-1.5 leading-snug" style="color:#0B1220;">${escapeHtml(f.title)}</h4>
+              <p class="text-sm leading-relaxed" style="color:#64748B;">${escapeHtml(f.desc)}</p>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    ` : '';
+
+    return `
+      <div class="px-16 pt-16 pb-10 text-center" style="background-color:#ffffff;">
+        <h1 class="text-4xl font-extrabold leading-tight mb-3">${escapeHtml(a.headline)}</h1>
+        <p class="text-base text-slate-500 mx-auto" style="max-width:600px;">${escapeHtml(a.subheadline)}</p>
+      </div>
+
+      <div class="w-full" style="height:1000px; background-image:url('${state.thumbnail}'); background-size:cover; background-position:center;"></div>
+
+      <div class="flex flex-wrap justify-center items-center gap-x-3 gap-y-2 px-16 py-10 font-mono text-[11px] tracking-[0.1em] text-slate-500 uppercase" style="background-color:#ffffff;">
+        ${a.usp.map((u, i) => (i > 0 ? '<span class="text-slate-300">·</span>' : '') + `<span>${escapeHtml(u)}</span>`).join('')}
+      </div>
+
+      ${gridImages.length ? `<div class="grid grid-cols-1">${gridTiles}</div>` : ''}
+
+      ${remainingBlock}
+
+      <div class="mx-auto pb-14 px-10 text-center border-t border-slate-100 pt-14" style="max-width:640px; background-color:#ffffff;">
+        <p class="text-base leading-relaxed text-slate-500" style="white-space:pre-line;">${escapeHtml(a.description)}</p>
+      </div>
+    `;
+  }
+
+  // 레이아웃 D — 임팩트형: 여백을 최소화하고 이미지·컬러 밴드·설명까지 전부 가로 폭을 꽉 채우는
+  // 대담한 포스터/에디토리얼 스타일입니다. (색상은 Tailwind 클래스 대신 인라인 스타일로 고정해서
+  // html2canvas 캡처 시 색이 빠지는 문제를 원천적으로 막았습니다.)
+  function buildLayoutD(a, detailImages) {
+    const items = detailImages.slice(0, 4);
+    const pairCount = Math.min(a.features.length, items.length);
+    const bandColors = ['#0B1220', '#2451FF'];
+
+    const imageBlocks = items.slice(0, pairCount).map((img, i) => {
+      const f = a.features[i];
+      const bg = bandColors[i % 2];
+      return `
+        <div class="px-10 py-14" style="background-color:#ffffff;">
+          <div class="w-full rounded-2xl" style="height:920px; background-image:url('${img.dataUrl}'); background-size:cover; background-position:center;"></div>
+        </div>
+        <div class="px-14 py-16" style="background-color:${bg};">
+          <p class="font-mono text-sm mb-3" style="color:rgba(255,255,255,0.55); letter-spacing:0.15em;">DETAIL 0${i + 1}</p>
+          <h3 class="font-extrabold mb-5 leading-tight" style="color:#ffffff; font-size:38px; max-width:800px;">${escapeHtml(f.title)}</h3>
+          <p class="text-lg leading-relaxed" style="color:rgba(255,255,255,0.85); max-width:720px;">${escapeHtml(f.desc)}</p>
+        </div>
+      `;
+    }).join('');
+
+    const remainingFeatures = a.features.slice(pairCount);
+    const remainingBlock = remainingFeatures.length ? `
+      <div class="px-14 py-16" style="background-color:#F8FAFC;">
+        <div class="grid ${remainingFeatures.length > 1 ? 'grid-cols-2' : 'grid-cols-1'} gap-10">
+          ${remainingFeatures.map((f) => `
+            <div>
+              <h4 class="text-2xl font-bold mb-2" style="color:#0B1220;">${escapeHtml(f.title)}</h4>
+              <p class="text-base leading-relaxed" style="color:#64748B;">${escapeHtml(f.desc)}</p>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    ` : '';
+
+    const uspCount = Math.min(a.usp.length, 5);
+    const uspGridClass = { 1: 'grid-cols-1', 2: 'grid-cols-2', 3: 'grid-cols-3', 4: 'grid-cols-4', 5: 'grid-cols-5' }[uspCount] || 'grid-cols-4';
+
+    return `
+      <div class="px-10 py-14" style="background-color:#ffffff;">
+        <div class="w-full rounded-2xl" style="height:920px; background-image:url('${state.thumbnail}'); background-size:cover; background-position:center;"></div>
+      </div>
+
+      <div class="px-14 py-20" style="background-color:#0B1220;">
+        <h1 class="font-extrabold" style="color:#ffffff; font-size:76px; line-height:1.05; max-width:900px;">${escapeHtml(a.headline)}</h1>
+        <p class="text-xl mt-6" style="color:rgba(255,255,255,0.7); max-width:700px;">${escapeHtml(a.subheadline)}</p>
+      </div>
+
+      <div class="grid ${uspGridClass}" style="background-color:#2451FF;">
+        ${a.usp.slice(0, uspCount).map((u, i) => `
+          <div class="px-6 py-9 text-center" style="${i > 0 ? 'border-left:1px solid rgba(255,255,255,0.2);' : ''}">
+            <p class="font-extrabold leading-snug" style="color:#ffffff; font-size:17px;">${escapeHtml(u)}</p>
+          </div>
+        `).join('')}
+      </div>
+
+      ${imageBlocks}
+      ${remainingBlock}
+
+      <div class="px-14 py-20" style="background-color:#F8FAFC;">
+        <p class="font-extrabold leading-snug" style="color:#0B1220; font-size:34px; max-width:820px; white-space:pre-line;">${escapeHtml(a.description)}</p>
+      </div>
+    `;
+  }
+
+  function setActiveLayout(layout) {
+    state.activeLayout = layout;
+    detailCaptureA.classList.toggle('hidden', layout !== 'A');
+    detailCaptureB.classList.toggle('hidden', layout !== 'B');
+    detailCaptureC.classList.toggle('hidden', layout !== 'C');
+    detailCaptureD.classList.toggle('hidden', layout !== 'D');
+    layoutTabA.className = `layout-tab px-3 py-1.5 text-[12px] font-semibold ${layout === 'A' ? 'bg-brand-600 text-white' : 'bg-white text-slate-500 hover:bg-slate-50'}`;
+    layoutTabB.className = `layout-tab px-3 py-1.5 text-[12px] font-semibold border-l border-slate-200 ${layout === 'B' ? 'bg-brand-600 text-white' : 'bg-white text-slate-500 hover:bg-slate-50'}`;
+    layoutTabC.className = `layout-tab px-3 py-1.5 text-[12px] font-semibold border-l border-slate-200 ${layout === 'C' ? 'bg-brand-600 text-white' : 'bg-white text-slate-500 hover:bg-slate-50'}`;
+    layoutTabD.className = `layout-tab px-3 py-1.5 text-[12px] font-semibold border-l border-slate-200 ${layout === 'D' ? 'bg-brand-600 text-white' : 'bg-white text-slate-500 hover:bg-slate-50'}`;
+  }
+  layoutTabA.addEventListener('click', () => setActiveLayout('A'));
+  layoutTabB.addEventListener('click', () => setActiveLayout('B'));
+  layoutTabC.addEventListener('click', () => setActiveLayout('C'));
+  layoutTabD.addEventListener('click', () => setActiveLayout('D'));
+
+  backToStep2Btn.addEventListener('click', () => {
+    if (state.analysis) renderStep2AnalysisPreview(state.analysis);
+    goToStep(2);
+  });
+
+  /* =========================================================
+   * 12. 다운로드
+   * =======================================================*/
+  downloadThumbBtn.addEventListener('click', async () => {
+    if (!state.thumbnail) return;
+    downloadThumbBtn.disabled = true;
+    try {
+      const jpegUrl = await convertToJpeg(state.thumbnail);
+      downloadDataUrl(jpegUrl, `${state.productName || 'ssaka'}_thumbnail.jpg`);
+    } catch (err) {
+      showToast('썸네일을 JPG로 변환하는 중 문제가 발생했어요: ' + err.message);
+    } finally {
+      downloadThumbBtn.disabled = false;
+    }
+  });
+
+  downloadDetailBtn.addEventListener('click', async () => {
+    if (!window.html2canvas) {
+      showToast('html2canvas 라이브러리를 불러오지 못했어요. 네트워크 상태를 확인해주세요.');
+      return;
+    }
+    downloadDetailBtn.disabled = true;
+    downloadDetailLabel.textContent = '변환 중...';
+    try {
+      const targetMap = { A: detailCaptureA, B: detailCaptureB, C: detailCaptureC, D: detailCaptureD };
+      const targetNode = targetMap[state.activeLayout] || detailCaptureA;
+      // Tailwind Play CDN은 새로 추가된 클래스의 CSS를 비동기로 주입합니다.
+      // 캡처 직전에 살짝 기다려 스타일이 확실히 반영된 뒤 찍히도록 합니다.
+      await new Promise((r) => setTimeout(r, 350));
+      const canvas = await html2canvas(targetNode, {
+        scale: 1,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        width: 1000,
+        windowWidth: 1000,
+      });
+      const url = canvasToJpeg(canvas, 0.92);
+      downloadDataUrl(url, `${state.productName || 'ssaka'}_detail_${state.activeLayout}.jpg`);
+    } catch (err) {
+      showToast('상세페이지 이미지 변환 중 오류가 발생했어요: ' + err.message);
+    } finally {
+      downloadDetailBtn.disabled = false;
+      downloadDetailLabel.textContent = '상세페이지 다운로드';
+    }
+  });
+
+  /* =========================================================
+   * 13. 초기화
+   * =======================================================*/
+  loadApiKey();
+  renderMoodGrid();
+  renderLogoGrid();
+  renderUploadGrid();
+  updateStepper();
+  updateNextButtonState();
+  goToStep(1);
+})();
+</script>
+</body>
+</html>
