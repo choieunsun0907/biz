@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SSAKA E-BIZ STUDIO · 이미지 업다운 스케일러</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Segoe UI", sans-serif; background:#f8fafc; color:#111827; height:100vh; height:100dvh; display:flex; flex-direction:column; overflow:hidden; }
+    .ssaka-topbar { flex:0 0 auto; z-index:1000; display:flex; align-items:center; justify-content:space-between; gap:18px; padding:0 25px; height:74px; border-bottom:1px solid #e5e7eb; background:rgba(255,255,255,.96); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); }
+    .ssaka-logo { font-size:20px; font-weight:900; letter-spacing:-.04em; color:#111827; text-decoration:none; white-space:nowrap; }
+    .ssaka-menu { display:flex; align-items:center; justify-content:flex-end; flex-wrap:wrap; gap:10px; }
+    .ssaka-menu a { min-height:46px; display:inline-flex; align-items:center; justify-content:center; padding:0 18px; border-radius:999px; border:1px solid #e5e7eb; background:#fff; color:#374151; text-decoration:none; font-size:15px; font-weight:800; letter-spacing:-.03em; transition:all .15s ease; }
+    .ssaka-menu a:hover, .ssaka-menu a.active { background:#111827; border-color:#111827; color:#fff; }
+    .ssaka-frame { flex:1 1 auto; min-height:0; background:#fff; }
+    iframe { width:100%; height:100%; border:0; display:block; background:#fff; }
+    @media (max-width:860px){ .ssaka-topbar{height:auto; align-items:flex-start; flex-direction:column; padding:14px 16px; gap:10px;} .ssaka-menu{width:100%; flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; justify-content:flex-start; gap:8px; padding-bottom:8px; scrollbar-width:thin; scrollbar-color:#cbd5e1 transparent;} .ssaka-menu::-webkit-scrollbar{height:6px;} .ssaka-menu::-webkit-scrollbar-track{background:#f1f5f9; border-radius:999px;} .ssaka-menu::-webkit-scrollbar-thumb{background:#cbd5e1; border-radius:999px;} .ssaka-menu::-webkit-scrollbar-thumb:hover{background:#94a3b8;} .ssaka-menu a{flex:0 0 auto; white-space:nowrap;} }
+  </style>
+</head>
+<body>
+  <header class="ssaka-topbar">
+    <a class="ssaka-logo" href="./index.html">SSAKA E-BIZ STUDIO</a>
+    <nav class="ssaka-menu" aria-label="SSAKA E-BIZ Studio Menu">
+      <a class="active" href="./tool-ghost-page-1.html">고스트 페이지 1</a>
+      <a href="./tool-ghost-page-2.html">고스트 페이지 2</a>
+      <a href="./tool-banner-studio.html">롤링배너 제작</a>
+      <a href="./tool-editorial-detail.html">웹 상세페이지</a>
+  <!--      <a href="./tool-store-reference-1.html">매장 레퍼런스 제작 1</a> -->
+      <a href="./tool-store-reference-2.html">매장 레퍼런스 제작</a>
+     <a href="./image-upscaler.html">이미지 업다운 스케일러</a>
+    </nav>
+  </header>
+  <main class="ssaka-frame">
+    <iframe title="고스트 페이지 1" src="./E-BIZ_고스트변환페이지1.html"></iframe>
+  </main>
+</body>
+</html>
