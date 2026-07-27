@@ -64,6 +64,23 @@
     to   { opacity: 1; transform: translateY(0); }
   }
 
+  /* AI 분석 미리보기 - 텍스트 직접 수정 */
+  .ai-editable {
+    outline: none;
+    border-radius: 7px;
+    padding: 3px 6px;
+    margin: -3px -6px;
+    cursor: text;
+    transition: background-color .15s ease, box-shadow .15s ease;
+  }
+  .ai-editable:hover { background: #F8FAFC; }
+  .ai-editable:focus { background: #EFF6FF; box-shadow: 0 0 0 2px rgba(37,99,235,.35); }
+  span.ai-editable { display: inline-block; }
+  .ai-editable-hint {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11px; font-weight: 600; color: #94A3B8;
+  }
+
   .mood-card[data-selected="true"] {
     outline: 2px solid #2451FF;
     outline-offset: -2px;
@@ -316,7 +333,7 @@
         </button>
       </div>
       <div id="step2AnalysisPreview" class="hidden rounded-2xl border border-slate-200 bg-white p-6 space-y-4"></div>
-      <p class="text-[11px] text-slate-400 mt-2">이미지 생성 전에 AI가 작성할 카피만 먼저 확인해볼 수 있어요. 실제 이미지 생성은 "AI로 생성하기"를 눌러야 진행돼요.</p>
+      <p class="text-[11px] text-slate-400 mt-2">이미지 생성 전에 AI가 작성할 카피만 먼저 확인해볼 수 있어요. 마음에 들지 않는 문구는 클릭해서 바로 고칠 수 있고, 수정한 내용이 최종 결과물에 그대로 반영돼요. 실제 이미지 생성은 "AI로 생성하기"를 눌러야 진행돼요.</p>
     </div>
   </section>
 
@@ -1803,37 +1820,72 @@
   function renderStep2AnalysisPreview(a) {
     step2AnalysisPreview.classList.remove('hidden');
     step2AnalysisPreview.innerHTML = `
+      <div class="flex items-center justify-between mb-1">
+        <span class="ai-editable-hint">✏️ 문구를 클릭하면 바로 수정할 수 있어요</span>
+      </div>
       <div>
         <p class="font-mono text-[10px] tracking-[0.15em] text-brand-600 mb-1.5">HEADLINE</p>
-        <p class="font-bold text-lg leading-snug">${escapeHtml(a.headline)}</p>
+        <p class="ai-editable font-bold text-lg leading-snug" contenteditable="true" spellcheck="false" data-field="headline">${escapeHtml(a.headline)}</p>
       </div>
       <div>
         <p class="font-mono text-[10px] tracking-[0.15em] text-brand-600 mb-1.5">SUBHEADLINE</p>
-        <p class="text-sm text-slate-600 leading-relaxed">${escapeHtml(a.subheadline)}</p>
+        <p class="ai-editable text-sm text-slate-600 leading-relaxed" contenteditable="true" spellcheck="false" data-field="subheadline">${escapeHtml(a.subheadline)}</p>
       </div>
       <div>
         <p class="font-mono text-[10px] tracking-[0.15em] text-brand-600 mb-2">USP</p>
         <div class="flex flex-wrap gap-1.5">
-          ${a.usp.map((u) => `<span class="px-2.5 py-1 rounded-full bg-brand-50 text-brand-700 text-[12px] font-semibold">${escapeHtml(u)}</span>`).join('')}
+          ${a.usp.map((u, i) => `<span class="ai-editable px-2.5 py-1 rounded-full bg-brand-50 text-brand-700 text-[12px] font-semibold" contenteditable="true" spellcheck="false" data-field="usp" data-index="${i}">${escapeHtml(u)}</span>`).join('')}
         </div>
       </div>
       <div>
         <p class="font-mono text-[10px] tracking-[0.15em] text-brand-600 mb-1.5">DESCRIPTION</p>
-        <p class="text-sm text-slate-600 leading-relaxed" style="white-space:pre-line;">${escapeHtml(a.description)}</p>
+        <p class="ai-editable text-sm text-slate-600 leading-relaxed" contenteditable="true" spellcheck="false" style="white-space:pre-line;" data-field="description">${escapeHtml(a.description)}</p>
       </div>
       <div>
         <p class="font-mono text-[10px] tracking-[0.15em] text-brand-600 mb-2">FEATURES</p>
         <div class="grid sm:grid-cols-2 gap-3">
-          ${a.features.map((f) => `
+          ${a.features.map((f, i) => `
             <div class="rounded-xl bg-slate-50 p-4">
-              <p class="font-semibold text-sm mb-1">${escapeHtml(f.title)}</p>
-              <p class="text-xs text-slate-500 leading-relaxed">${escapeHtml(f.desc)}</p>
+              <p class="ai-editable font-semibold text-sm mb-1" contenteditable="true" spellcheck="false" data-field="features" data-index="${i}" data-key="title">${escapeHtml(f.title)}</p>
+              <p class="ai-editable text-xs text-slate-500 leading-relaxed" contenteditable="true" spellcheck="false" data-field="features" data-index="${i}" data-key="desc">${escapeHtml(f.desc)}</p>
             </div>
           `).join('')}
         </div>
       </div>
     `;
   }
+
+  // AI 분석 미리보기에서 사용자가 직접 고친 문구를 state.analysis에 즉시 반영합니다.
+  // (여기서 수정한 내용은 "AI로 생성하기"를 눌렀을 때 최종 결과물에 그대로 사용돼요.)
+  step2AnalysisPreview.addEventListener('input', (e) => {
+    const el = e.target;
+    if (!el.classList.contains('ai-editable') || !state.analysis) return;
+    const field = el.dataset.field;
+    const text = el.textContent.replace(/\n{3,}/g, '\n\n').trim();
+    if (field === 'headline' || field === 'subheadline' || field === 'description') {
+      state.analysis[field] = text;
+    } else if (field === 'usp') {
+      const idx = Number(el.dataset.index);
+      if (Array.isArray(state.analysis.usp)) state.analysis.usp[idx] = text;
+    } else if (field === 'features') {
+      const idx = Number(el.dataset.index);
+      const key = el.dataset.key;
+      if (Array.isArray(state.analysis.features) && state.analysis.features[idx]) {
+        state.analysis.features[idx][key] = text;
+      }
+    }
+  });
+
+  // 헤드라인/서브헤드라인/USP/피처는 한 줄짜리 짧은 카피라 Enter 입력 시 줄바꿈 대신
+  // 입력을 확정(blur)하도록 합니다. DESCRIPTION만 여러 줄 작성이 가능하도록 열어둡니다.
+  step2AnalysisPreview.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    const el = e.target;
+    if (!el.classList || !el.classList.contains('ai-editable')) return;
+    if (el.dataset.field === 'description') return;
+    e.preventDefault();
+    el.blur();
+  });
 
   async function handleManualAnalyze() {
     if (!state.apiKey) {
@@ -2239,13 +2291,19 @@
     setLoading('analyze');
 
     try {
-      const orderedImages = [
-        state.images[state.mainIndex],
-        ...state.images.filter((img, i) => i !== state.mainIndex && img),
-      ];
-
-      const analysis = await analyzeProduct(mood, orderedImages);
-      state.analysis = analysis;
+      let analysis;
+      if (state.analysis) {
+        // 2단계 "AI 분석 미리보기"를 이미 실행했다면(직접 수정했을 수도 있어요) 그 내용을 그대로 씁니다.
+        // 다시 분석을 돌리면 애써 고친 문구가 사라지니, 여기서는 재분석하지 않아요.
+        analysis = state.analysis;
+      } else {
+        const orderedImages = [
+          state.images[state.mainIndex],
+          ...state.images.filter((img, i) => i !== state.mainIndex && img),
+        ];
+        analysis = await analyzeProduct(mood, orderedImages);
+        state.analysis = analysis;
+      }
 
       let thumbDataUrl;
       let isTrueComposite = false;
