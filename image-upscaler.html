@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>이미지 업스케일러 — Work Tool</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+  :root{
+    --bg:#15171b;
+    --panel:#1c1f24;
+    --panel-2:#22262c;
+    --border:#2b2f36;
+    --border-soft:#23262c;
+    --text:#edeef0;
+    --text-dim:#8b909a;
+    --text-faint:#565b63;
+    --accent:#ff9f45;
+    --accent-soft:rgba(255,159,69,0.14);
+    --success:#4ade80;
+    --success-soft:rgba(74,222,128,0.14);
+    --danger:#f0605a;
+    --radius:10px;
+    --radius-lg:16px;
+    --mono:'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
+    --sans:'Manrope', system-ui, -apple-system, sans-serif;
+    --display:'Space Grotesk', var(--sans);
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    min-height:100vh;
+    line-height:1.5;
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration:0.001ms !important; transition-duration:0.001ms !important; }
+  }
+  ::selection{ background:var(--accent-soft); color:var(--text); }
+  :focus-visible{ outline:2px solid var(--accent); outline-offset:2px; border-radius:4px; }
+
+  .topbar{
+    display:flex; align-items:center; gap:12px;
+    padding:22px 28px;
+    border-bottom:1px solid var(--border-soft);
+  }
+  .brand-mark{
+    width:34px; height:34px; flex:none;
+    display:flex; align-items:center; justify-content:center;
+    border:1.5px solid var(--accent);
+    border-radius:8px;
+    color:var(--accent);
+    font-family:var(--display);
+    font-size:16px;
+    transform:rotate(0deg);
+  }
+  .topbar h1{
+    font-family:var(--display);
+    font-size:19px;
+    font-weight:600;
+    margin:0;
+    letter-spacing:-0.01em;
+  }
+  .topbar p{
+    margin:2px 0 0;
+    font-size:12.5px;
+    color:var(--text-dim);
+  }
+
+  .layout{
+    display:grid;
+    grid-template-columns:288px 1fr;
+    gap:0;
+    align-items:start;
+    max-width:1240px;
+    margin:0 auto;
+    padding-bottom:96px;
+  }
+  @media (max-width:860px){
+    .layout{ grid-template-columns:1fr; }
+  }
+
+  .controls{
+    padding:22px;
+    border-right:1px solid var(--border-soft);
+    position:sticky;
+    top:0;
+    display:flex;
+    flex-direction:column;
+    gap:20px;
+  }
+  @media (max-width:860px){
+    .controls{ position:static; border-right:none; border-bottom:1px solid var(--border-soft); }
+  }
+
+  .control-group{ display:flex; flex-direction:column; gap:8px; }
+  .control-label{
+    font-size:12px;
+    font-weight:600;
+    color:var(--text-dim);
+    text-transform:uppercase;
+    letter-spacing:0.04em;
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .mono{ font-family:var(--mono); font-weight:400; color:var(--accent); font-size:11.5px; }
+
+  .size-inputs{ display:flex; align-items:center; gap:8px; }
+  .size-inputs input{ width:100%; }
+  .size-inputs .x{ color:var(--text-faint); font-family:var(--mono); font-size:13px; }
+
+  input[type="number"], input[type="text"], select{
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    border-radius:8px;
+    padding:8px 10px;
+    font-family:var(--mono);
+    font-size:13px;
+    width:100%;
+  }
+  select{ font-family:var(--sans); font-size:13px; appearance:none; cursor:pointer; }
+
+  .preset-row{ display:flex; flex-wrap:wrap; gap:6px; }
+  .preset-btn{
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    color:var(--text-dim);
+    font-family:var(--mono);
+    font-size:11px;
+    padding:5px 8px;
+    border-radius:6px;
+    cursor:pointer;
+  }
+  .preset-btn:hover{ border-color:var(--accent); color:var(--accent); }
+
+  .bg-controls{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:2px; }
+  .bg-color-label{ font-size:12px; color:var(--text-dim); }
+  .hint-text{ font-size:10.5px; color:var(--text-faint); margin:2px 0 0; line-height:1.4; }
+  .inline-check{ display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-dim); cursor:pointer; }
+  .inline-check input{ accent-color:var(--accent); }
+  input[type="color"]{
+    width:30px; height:26px; border:1px solid var(--border); border-radius:6px;
+    background:var(--panel-2); padding:2px; cursor:pointer;
+  }
+
+  input[type="range"]{
+    -webkit-appearance:none; appearance:none;
+    width:100%; height:3px; border-radius:2px;
+    background:var(--border);
+    outline:none;
+  }
+  input[type="range"]::-webkit-slider-thumb{
+    -webkit-appearance:none; appearance:none;
+    width:14px; height:14px; border-radius:50%;
+    background:var(--accent); cursor:pointer;
+    border:2px solid var(--bg);
+    box-shadow:0 0 0 1px var(--accent);
+  }
+  input[type="range"]::-moz-range-thumb{
+    width:14px; height:14px; border-radius:50%;
+    background:var(--accent); cursor:pointer; border:2px solid var(--bg);
+  }
+
+  .segmented{ display:flex; border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+  .seg-btn{
+    flex:1; background:var(--panel-2); border:none; color:var(--text-dim);
+    padding:8px 0; font-size:12.5px; font-weight:600; cursor:pointer;
+    border-right:1px solid var(--border);
+  }
+  .seg-btn:last-child{ border-right:none; }
+  .seg-btn.active{ background:var(--accent-soft); color:var(--accent); }
+
+  .jpg-quality{ margin-top:4px; }
+  .hidden{ display:none !important; }
+
+  .btn{
+    font-family:var(--sans); font-weight:700; font-size:13px;
+    border-radius:8px; padding:11px 16px; cursor:pointer; border:1px solid transparent;
+    display:inline-flex; align-items:center; justify-content:center; gap:6px;
+  }
+  .btn:disabled{ opacity:0.4; cursor:not-allowed; }
+  .btn-block{ width:100%; }
+  .btn-accent{ background:var(--accent); color:#1a1206; }
+  .btn-accent:hover:not(:disabled){ filter:brightness(1.08); }
+  .btn-ghost{ background:transparent; border-color:var(--border); color:var(--text-dim); }
+  .btn-ghost:hover{ border-color:var(--text-dim); color:var(--text); }
+
+  .progress-wrap{ display:flex; flex-direction:column; gap:6px; }
+  .progress-track{ height:4px; border-radius:2px; background:var(--panel-2); overflow:hidden; }
+  .progress-fill{ height:100%; width:0%; background:var(--accent); transition:width 0.15s ease; }
+  .progress-label{ text-align:center; color:var(--text-faint); }
+
+  .workspace{ padding:22px 26px; min-height:60vh; }
+
+  .dropzone{
+    position:relative;
+    border:1px dashed var(--border);
+    border-radius:var(--radius-lg);
+    padding:46px 24px;
+    text-align:center;
+    cursor:pointer;
+    background:var(--panel);
+    transition:border-color 0.15s ease, background 0.15s ease;
+  }
+  .dropzone.drag-over{ border-color:var(--accent); background:var(--accent-soft); }
+  .dropzone .corner{
+    position:absolute; width:20px; height:20px;
+    border:2px solid var(--accent); opacity:0.7;
+  }
+  .corner.tl{ top:12px; left:12px; border-right:none; border-bottom:none; }
+  .corner.tr{ top:12px; right:12px; border-left:none; border-bottom:none; }
+  .corner.bl{ bottom:12px; left:12px; border-right:none; border-top:none; }
+  .corner.br{ bottom:12px; right:12px; border-left:none; border-top:none; }
+  .dz-icon{ color:var(--text-faint); margin-bottom:10px; }
+  .dz-title{ font-family:var(--display); font-size:15px; font-weight:600; margin:0 0 4px; }
+  .dz-sub{ font-size:12px; color:var(--text-dim); margin:0; }
+
+  .grid{
+    margin-top:22px;
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(240px, 1fr));
+    gap:14px;
+  }
+
+  .card{
+    background:var(--panel);
+    border:1px solid var(--border-soft);
+    border-radius:var(--radius);
+    padding:12px;
+    display:flex; flex-direction:column; gap:10px;
+  }
+  .card-thumbs{ display:flex; align-items:center; gap:6px; }
+  .thumb-box{
+    position:relative; flex:1; aspect-ratio:1/1;
+    background:var(--panel-2);
+    border:1px solid var(--border-soft);
+    border-radius:8px;
+    overflow:hidden;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .thumb-img{ width:100%; height:100%; object-fit:contain; }
+  .thumb-tag{
+    position:absolute; bottom:4px; left:5px;
+    font-family:var(--mono); font-size:9px; letter-spacing:0.03em;
+    color:var(--text-dim); background:rgba(0,0,0,0.45);
+    padding:1px 5px; border-radius:4px;
+  }
+  .thumb-placeholder{ font-size:10px; color:var(--text-faint); }
+  .thumb-arrow{ color:var(--text-faint); font-size:13px; flex:none; }
+
+  .card-meta{ display:flex; flex-direction:column; gap:2px; }
+  .card-name{
+    margin:0; font-size:12.5px; font-weight:600;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .card-dims{ margin:0; font-size:11px; color:var(--text-faint); display:flex; gap:6px; }
+  .card-dims .dims-target{ color:var(--accent); }
+
+  .card-footer{ display:flex; align-items:center; justify-content:space-between; }
+  .status-pill{
+    font-size:10.5px; font-weight:700; padding:3px 8px; border-radius:20px;
+    font-family:var(--mono); letter-spacing:0.02em;
+  }
+  .status-pending{ background:var(--panel-2); color:var(--text-faint); }
+  .status-processing{ background:var(--accent-soft); color:var(--accent); }
+  .status-done{ background:var(--success-soft); color:var(--success); }
+
+  .card-actions{ display:flex; gap:6px; }
+  .icon-btn{
+    width:28px; height:28px; border-radius:7px;
+    background:var(--panel-2); border:1px solid var(--border);
+    color:var(--text-dim); cursor:pointer; font-size:13px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .icon-btn:hover:not(:disabled){ border-color:var(--accent); color:var(--accent); }
+  .icon-btn:disabled{ opacity:0.35; cursor:not-allowed; }
+  .icon-btn.remove-btn:hover{ border-color:var(--danger); color:var(--danger); }
+
+  .empty-state{ text-align:center; padding:40px 0 10px; color:var(--text-faint); font-size:12.5px; }
+
+  .footer-bar{
+    position:fixed; bottom:0; left:0; right:0;
+    background:var(--panel);
+    border-top:1px solid var(--border-soft);
+    padding:12px 26px;
+    display:flex; align-items:center; justify-content:space-between;
+    gap:14px;
+    z-index:20;
+  }
+  #countLabel{ font-size:12.5px; color:var(--text-dim); font-family:var(--mono); }
+  .footer-actions{ display:flex; gap:10px; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <span class="brand-mark">◧</span>
+  <div>
+    <h1>이미지 업스케일러</h1>
+    <p>업무용 배치 리사이즈 · 선명도 보정 도구</p>
+  </div>
+</header>
+
+<main class="layout">
+  <aside class="controls" aria-label="변환 설정">
+    <div class="control-group">
+      <label class="control-label">목표 크기 (px)</label>
+      <div class="size-inputs">
+        <input type="number" id="widthInput" value="1000" min="1" max="8000" aria-label="목표 너비">
+        <span class="x">×</span>
+        <input type="number" id="heightInput" value="1000" min="1" max="8000" aria-label="목표 높이">
+      </div>
+      <div class="preset-row">
+        <button type="button" class="preset-btn" data-w="1000" data-h="1000">1000×1000</button>
+        <button type="button" class="preset-btn" data-w="800" data-h="800">800×800</button>
+        <button type="button" class="preset-btn" data-w="500" data-h="500">500×500</button>
+        <button type="button" class="preset-btn" data-w="1200" data-h="800">1200×800</button>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <label class="control-label">맞춤 방식</label>
+      <select id="fitMode">
+        <option value="contain" selected>여백 추가 (전체 보이기)</option>
+        <option value="cover">채우기 (크롭)</option>
+        <option value="stretch">비율 무시 (강제 맞춤)</option>
+      </select>
+    </div>
+
+    <div class="control-group">
+      <label class="control-label">배경</label>
+      <label class="inline-check"><input type="checkbox" id="transparentCheck"> 배경 제거 (제품만 남기고 투명 처리)</label>
+      <div class="bg-controls" id="bgControls">
+        <span class="bg-color-label">패딩 / JPG 배경색</span>
+        <input type="color" id="bgColor" value="#ffffff" aria-label="배경색">
+      </div>
+      <p class="hint-text">PNG는 투명 유지, JPG는 위 배경색으로 채워집니다</p>
+    </div>
+
+    <div class="control-group hidden" id="toleranceGroup">
+      <label class="control-label">배경 감지 민감도 <span id="toleranceValue" class="mono">35</span></label>
+      <input type="range" id="bgToleranceSlider" min="5" max="90" value="35">
+      <p class="hint-text">배경이 잘 안 지워지면 값을 높이고, 제품이 같이 지워지면 값을 낮추세요</p>
+    </div>
+
+    <div class="control-group">
+      <label class="control-label">선명도 보정 <span id="sharpenValue" class="mono">30%</span></label>
+      <input type="range" id="sharpenSlider" min="0" max="100" value="30">
+    </div>
+
+    <div class="control-group">
+      <label class="control-label">출력 형식</label>
+      <div class="segmented" id="formatSeg">
+        <button type="button" class="seg-btn active" data-format="png">PNG</button>
+        <button type="button" class="seg-btn" data-format="jpg">JPG</button>
+      </div>
+      <div class="jpg-quality hidden" id="jpgQualityWrap">
+        <label class="control-label">JPG 화질 <span id="jpgQualityValue" class="mono">92%</span></label>
+        <input type="range" id="jpgQualitySlider" min="50" max="100" value="92">
+      </div>
+    </div>
+
+    <button type="button" id="startBtn" class="btn btn-accent btn-block" disabled>변환 시작</button>
+
+    <div class="progress-wrap hidden" id="progressWrap">
+      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+      <p class="progress-label mono" id="progressLabel">0 / 0</p>
+    </div>
+  </aside>
+
+  <section class="workspace">
+    <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="이미지 업로드 영역, 클릭하거나 파일을 드래그하세요">
+      <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+      <svg class="dz-icon" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M4 16.5V18a2 2 0 002 2h12a2 2 0 002-2v-1.5M7 9l5-5 5 5M12 4v13" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <p class="dz-title">이미지를 드래그하거나 클릭해서 추가하세요</p>
+      <p class="dz-sub">PNG · JPG · WEBP 지원 · 여러 장 동시 업로드 가능</p>
+      <input type="file" id="fileInput" accept="image/*" multiple hidden>
+    </div>
+
+    <p class="empty-state" id="emptyState">아직 추가된 이미지가 없습니다.</p>
+    <div class="grid" id="grid"></div>
+  </section>
+</main>
+
+<footer class="footer-bar hidden" id="footerBar">
+  <span id="countLabel">0장 업로드됨</span>
+  <div class="footer-actions">
+    <button type="button" class="btn btn-ghost" id="clearBtn">전체 지우기</button>
+    <button type="button" class="btn btn-accent" id="zipBtn" disabled>ZIP으로 전체 다운로드</button>
+  </div>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  const state = { items: [] };
+  let idSeq = 0;
+
+  const el = {
+    dropzone: document.getElementById('dropzone'),
+    fileInput: document.getElementById('fileInput'),
+    grid: document.getElementById('grid'),
+    emptyState: document.getElementById('emptyState'),
+    widthInput: document.getElementById('widthInput'),
+    heightInput: document.getElementById('heightInput'),
+    fitMode: document.getElementById('fitMode'),
+    bgControls: document.getElementById('bgControls'),
+    transparentCheck: document.getElementById('transparentCheck'),
+    bgColor: document.getElementById('bgColor'),
+    toleranceGroup: document.getElementById('toleranceGroup'),
+    bgToleranceSlider: document.getElementById('bgToleranceSlider'),
+    toleranceValue: document.getElementById('toleranceValue'),
+    sharpenSlider: document.getElementById('sharpenSlider'),
+    sharpenValue: document.getElementById('sharpenValue'),
+    formatSeg: document.getElementById('formatSeg'),
+    jpgQualityWrap: document.getElementById('jpgQualityWrap'),
+    jpgQualitySlider: document.getElementById('jpgQualitySlider'),
+    jpgQualityValue: document.getElementById('jpgQualityValue'),
+    startBtn: document.getElementById('startBtn'),
+    progressWrap: document.getElementById('progressWrap'),
+    progressFill: document.getElementById('progressFill'),
+    progressLabel: document.getElementById('progressLabel'),
+    footerBar: document.getElementById('footerBar'),
+    countLabel: document.getElementById('countLabel'),
+    clearBtn: document.getElementById('clearBtn'),
+    zipBtn: document.getElementById('zipBtn'),
+  };
+
+  let currentFormat = 'png';
+
+  function escapeHtml(str){
+    return String(str).replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+
+  function clamp(v, min, max){ return v < min ? min : (v > max ? max : v); }
+
+  // ---------- Upload handling ----------
+
+  el.dropzone.addEventListener('click', () => el.fileInput.click());
+  el.dropzone.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el.fileInput.click(); }
+  });
+  el.fileInput.addEventListener('change', (e) => {
+    addFiles(e.target.files);
+    el.fileInput.value = '';
+  });
+  ['dragover'].forEach(evt => {
+    el.dropzone.addEventListener(evt, (e) => {
+      e.preventDefault();
+      el.dropzone.classList.add('drag-over');
+    });
+  });
+  ['dragleave', 'drop'].forEach(evt => {
+    el.dropzone.addEventListener(evt, (e) => {
+      e.preventDefault();
+      el.dropzone.classList.remove('drag-over');
+    });
+  });
+  el.dropzone.addEventListener('drop', (e) => {
+    if (e.dataTransfer && e.dataTransfer.files) addFiles(e.dataTransfer.files);
+  });
+
+  function addFiles(fileList){
+    const files = Array.from(fileList).filter(f => f.type.startsWith('image/'));
+    files.forEach(file => {
+      const id = 'img_' + (idSeq++);
+      const originalURL = URL.createObjectURL(file);
+      const item = {
+        id, file, name: file.name,
+        originalURL, originalW: 0, originalH: 0,
+        img: null, status: 'loading',
+        resultBlob: null, resultURL: null, resultW: 0, resultH: 0,
+      };
+      state.items.push(item);
+      renderCard(item);
+
+      const imgEl = new Image();
+      imgEl.onload = () => {
+        item.img = imgEl;
+        item.originalW = imgEl.naturalWidth;
+        item.originalH = imgEl.naturalHeight;
+        item.status = 'pending';
+        updateCard(item);
+        updateFooter();
+      };
+      imgEl.onerror = () => {
+        item.status = 'error';
+        updateCard(item);
+      };
+      imgEl.src = originalURL;
+    });
+    updateFooter();
+  }
+
+  function renderCard(item){
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.id = 'card-' + item.id;
+    card.innerHTML = `
+      <div class="card-thumbs">
+        <div class="thumb-box">
+          <img class="thumb-img" src="${item.originalURL}" alt="원본">
+          <span class="thumb-tag">원본</span>
+        </div>
+        <div class="thumb-arrow">→</div>
+        <div class="thumb-box result-box">
+          <img class="thumb-img result-img hidden" alt="결과">
+          <span class="thumb-placeholder">대기중</span>
+          <span class="thumb-tag">결과</span>
+        </div>
+      </div>
+      <div class="card-meta">
+        <p class="card-name" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</p>
+        <p class="card-dims mono">
+          <span class="dims-orig">…</span>
+          <span class="dims-sep">→</span>
+          <span class="dims-target">—</span>
+        </p>
+      </div>
+      <div class="card-footer">
+        <span class="status-pill status-pending" data-role="status">대기</span>
+        <div class="card-actions">
+          <button type="button" class="icon-btn download-btn" disabled title="다운로드">⭳</button>
+          <button type="button" class="icon-btn remove-btn" title="삭제">✕</button>
+        </div>
+      </div>
+    `;
+    el.grid.appendChild(card);
+
+    card.querySelector('.download-btn').addEventListener('click', () => downloadSingle(item));
+    card.querySelector('.remove-btn').addEventListener('click', () => removeItem(item.id));
+
+    item.cardEl = card;
+    item.els = {
+      resultImg: card.querySelector('.result-img'),
+      placeholder: card.querySelector('.thumb-placeholder'),
+      dimsOrig: card.querySelector('.dims-orig'),
+      dimsTarget: card.querySelector('.dims-target'),
+      status: card.querySelector('[data-role="status"]'),
+      downloadBtn: card.querySelector('.download-btn'),
+    };
+  }
+
+  function updateCard(item){
+    if (!item.els) return;
+    if (item.originalW) {
+      item.els.dimsOrig.textContent = item.originalW + '×' + item.originalH;
+    }
+    setStatus(item, item.status);
+  }
+
+  function setStatus(item, status){
+    item.status = status;
+    const map = {
+      loading: ['대기', 'status-pending'],
+      pending: ['대기', 'status-pending'],
+      processing: ['처리중', 'status-processing'],
+      done: ['완료', 'status-done'],
+      error: ['오류', 'status-pending'],
+    };
+    const [label, cls] = map[status] || map.pending;
+    item.els.status.textContent = label;
+    item.els.status.className = 'status-pill ' + cls;
+    item.els.downloadBtn.disabled = status !== 'done';
+  }
+
+  function removeItem(id){
+    const idx = state.items.findIndex(it => it.id === id);
+    if (idx === -1) return;
+    const item = state.items[idx];
+    if (item.cardEl) item.cardEl.remove();
+    if (item.originalURL) URL.revokeObjectURL(item.originalURL);
+    if (item.resultURL) URL.revokeObjectURL(item.resultURL);
+    state.items.splice(idx, 1);
+    updateFooter();
+  }
+
+  el.clearBtn.addEventListener('click', () => {
+    state.items.slice().forEach(item => removeItem(item.id));
+  });
+
+  function updateFooter(){
+    const total = state.items.length;
+    const done = state.items.filter(it => it.status === 'done').length;
+    el.emptyState.classList.toggle('hidden', total > 0);
+    el.footerBar.classList.toggle('hidden', total === 0);
+    el.countLabel.textContent = total + '장 업로드됨 · ' + done + '장 완료';
+    el.zipBtn.disabled = done === 0;
+    el.startBtn.disabled = total === 0;
+  }
+
+  // ---------- Controls wiring ----------
+
+  document.querySelectorAll('.preset-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      el.widthInput.value = btn.dataset.w;
+      el.heightInput.value = btn.dataset.h;
+    });
+  });
+
+  el.transparentCheck.addEventListener('change', () => {
+    el.toleranceGroup.classList.toggle('hidden', !el.transparentCheck.checked);
+  });
+
+  el.bgToleranceSlider.addEventListener('input', () => {
+    el.toleranceValue.textContent = el.bgToleranceSlider.value;
+  });
+
+  el.sharpenSlider.addEventListener('input', () => {
+    el.sharpenValue.textContent = el.sharpenSlider.value + '%';
+  });
+
+  el.formatSeg.addEventListener('click', (e) => {
+    const btn = e.target.closest('.seg-btn');
+    if (!btn) return;
+    document.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentFormat = btn.dataset.format;
+    el.jpgQualityWrap.classList.toggle('hidden', currentFormat !== 'jpg');
+  });
+
+  el.jpgQualitySlider.addEventListener('input', () => {
+    el.jpgQualityValue.textContent = el.jpgQualitySlider.value + '%';
+  });
+
+  // ---------- Image processing ----------
+
+  function getSettings(){
+    return {
+      targetW: clamp(parseInt(el.widthInput.value, 10) || 1000, 1, 8000),
+      targetH: clamp(parseInt(el.heightInput.value, 10) || 1000, 1, 8000),
+      fitMode: el.fitMode.value,
+      transparent: el.transparentCheck.checked,
+      bgColor: el.bgColor.value,
+      bgTolerance: parseInt(el.bgToleranceSlider.value, 10),
+      sharpen: parseInt(el.sharpenSlider.value, 10),
+      format: currentFormat,
+      jpgQuality: parseInt(el.jpgQualitySlider.value, 10) / 100,
+    };
+  }
+
+  function drawFit(ctx, img, sw, sh, tw, th, mode, bgColor, transparent, isJpg){
+    ctx.clearRect(0, 0, tw, th);
+    const needsFill = isJpg || (mode === 'contain' && !transparent);
+    if (needsFill) {
+      ctx.fillStyle = bgColor;
+      ctx.fillRect(0, 0, tw, th);
+    }
+    if (mode === 'stretch') {
+      ctx.drawImage(img, 0, 0, sw, sh, 0, 0, tw, th);
+      return;
+    }
+    const scale = mode === 'cover' ? Math.max(tw / sw, th / sh) : Math.min(tw / sw, th / sh);
+    const dw = sw * scale, dh = sh * scale;
+    const dx = (tw - dw) / 2, dy = (th - dh) / 2;
+    ctx.drawImage(img, 0, 0, sw, sh, dx, dy, dw, dh);
+  }
+
+  function applySharpen(ctx, w, h, amount){
+    if (amount <= 0) return;
+    const k = (amount / 100) * 0.8;
+    const src = ctx.getImageData(0, 0, w, h);
+    const data = src.data;
+    const out = new Uint8ClampedArray(data.length);
+    const idx = (x, y) => (y * w + x) * 4;
+    for (let y = 0; y < h; y++) {
+      const yUp = y > 0 ? y - 1 : 0;
+      const yDown = y < h - 1 ? y + 1 : h - 1;
+      for (let x = 0; x < w; x++) {
+        const xLeft = x > 0 ? x - 1 : 0;
+        const xRight = x < w - 1 ? x + 1 : w - 1;
+        const i = idx(x, y);
+        const iL = idx(xLeft, y), iR = idx(xRight, y), iU = idx(x, yUp), iD = idx(x, yDown);
+        for (let c = 0; c < 3; c++) {
+          const center = data[i + c] * (1 + 4 * k);
+          const neighbors = k * (data[iL + c] + data[iR + c] + data[iU + c] + data[iD + c]);
+          out[i + c] = clamp(center - neighbors, 0, 255);
+        }
+        out[i + 3] = data[i + 3];
+      }
+    }
+    src.data.set(out);
+    ctx.putImageData(src, 0, 0);
+  }
+
+  // ---------- Background removal (cutout) ----------
+  // Same approach as the flat-cut ghost-mannequin converter: sample the
+  // corners as the background reference color, flood-fill inward from the
+  // image edges through similar-colored pixels only (so the fill can't
+  // jump across the product's edge), then keep only the largest remaining
+  // opaque blob to drop stray specks, and finally soften the cutout edge.
+
+  function sampleCornerColor(data, w, h){
+    const patch = Math.max(2, Math.min(8, Math.floor(Math.min(w, h) * 0.02)));
+    let rs = 0, gs = 0, bs = 0, n = 0;
+    function addPatch(x0, y0){
+      for (let y = y0; y < y0 + patch && y < h; y++) {
+        for (let x = x0; x < x0 + patch && x < w; x++) {
+          const i = (y * w + x) * 4;
+          rs += data[i]; gs += data[i + 1]; bs += data[i + 2]; n++;
+        }
+      }
+    }
+    addPatch(0, 0);
+    addPatch(w - patch, 0);
+    addPatch(0, h - patch);
+    addPatch(w - patch, h - patch);
+    return [rs / n, gs / n, bs / n];
+  }
+
+  function floodFillBackground(imageData, w, h, distThreshold){
+    const data = imageData.data;
+    const [rr, gg, bb] = sampleCornerColor(data, w, h);
+    const thresh2 = distThreshold * distThreshold;
+    const total = w * h;
+    const visited = new Uint8Array(total); // 1 = background, 2 = foreground boundary
+    const enqueued = new Uint8Array(total);
+    const queue = new Int32Array(total);
+    let qHead = 0, qTail = 0;
+
+    function enqueue(idx){
+      if (enqueued[idx]) return;
+      enqueued[idx] = 1;
+      queue[qTail++] = idx;
+    }
+
+    for (let x = 0; x < w; x++) { enqueue(x); enqueue((h - 1) * w + x); }
+    for (let y = 0; y < h; y++) { enqueue(y * w); enqueue(y * w + (w - 1)); }
+
+    while (qHead < qTail) {
+      const idx = queue[qHead++];
+      const p = idx * 4;
+      const dr = data[p] - rr, dg = data[p + 1] - gg, db = data[p + 2] - bb;
+      const d2 = dr * dr + dg * dg + db * db;
+      if (d2 <= thresh2) {
+        visited[idx] = 1;
+        const x = idx % w, y = (idx / w) | 0;
+        if (x > 0) enqueue(idx - 1);
+        if (x < w - 1) enqueue(idx + 1);
+        if (y > 0) enqueue(idx - w);
+        if (y < h - 1) enqueue(idx + w);
+      } else {
+        visited[idx] = 2;
+      }
+    }
+    return visited;
+  }
+
+  function keepLargestComponent(imageData, w, h, visited){
+    const total = w * h;
+    const label = new Int32Array(total).fill(-1);
+    const stack = new Int32Array(total);
+    let currentLabel = 0, bestLabel = -1, bestSize = 0;
+
+    for (let start = 0; start < total; start++) {
+      if (visited[start] === 1 || label[start] !== -1) continue;
+      let sp = 0, size = 0;
+      stack[sp++] = start;
+      label[start] = currentLabel;
+      while (sp > 0) {
+        const idx = stack[--sp];
+        size++;
+        const x = idx % w, y = (idx / w) | 0;
+        if (x > 0) { const n = idx - 1; if (visited[n] !== 1 && label[n] === -1) { label[n] = currentLabel; stack[sp++] = n; } }
+        if (x < w - 1) { const n = idx + 1; if (visited[n] !== 1 && label[n] === -1) { label[n] = currentLabel; stack[sp++] = n; } }
+        if (y > 0) { const n = idx - w; if (visited[n] !== 1 && label[n] === -1) { label[n] = currentLabel; stack[sp++] = n; } }
+        if (y < h - 1) { const n = idx + w; if (visited[n] !== 1 && label[n] === -1) { label[n] = currentLabel; stack[sp++] = n; } }
+      }
+      if (size > bestSize) { bestSize = size; bestLabel = currentLabel; }
+      currentLabel++;
+    }
+    if (bestLabel === -1) return;
+
+    const data = imageData.data;
+    for (let i = 0, p = 0; i < total; i++, p += 4) {
+      if (visited[i] !== 1 && label[i] !== bestLabel) data[p + 3] = 0;
+    }
+  }
+
+  function smoothAlphaEdges(imageData, w, h){
+    const data = imageData.data;
+    const total = w * h;
+    const alphaIn = new Uint8ClampedArray(total);
+    for (let i = 0, p = 3; i < total; i++, p += 4) alphaIn[i] = data[p];
+    const alphaOut = new Uint8ClampedArray(total);
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        let sum = 0, count = 0;
+        for (let dy = -1; dy <= 1; dy++) {
+          const yy = y + dy; if (yy < 0 || yy >= h) continue;
+          for (let dx = -1; dx <= 1; dx++) {
+            const xx = x + dx; if (xx < 0 || xx >= w) continue;
+            sum += alphaIn[yy * w + xx]; count++;
+          }
+        }
+        alphaOut[y * w + x] = Math.round(sum / count);
+      }
+    }
+    for (let i = 0, p = 3; i < total; i++, p += 4) data[p] = alphaOut[i];
+  }
+
+  function buildCutoutCanvas(img, w, h, tolerancePercent){
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, w, h);
+    const imageData = ctx.getImageData(0, 0, w, h);
+    const distThreshold = 10 + tolerancePercent * 1.3; // map 5–90 slider to a color-distance range
+    const visited = floodFillBackground(imageData, w, h, distThreshold);
+    const data = imageData.data;
+    for (let i = 0, p = 0; i < visited.length; i++, p += 4) {
+      if (visited[i] === 1) data[p + 3] = 0;
+    }
+    keepLargestComponent(imageData, w, h, visited);
+    smoothAlphaEdges(imageData, w, h);
+    ctx.putImageData(imageData, 0, 0);
+    return canvas;
+  }
+
+  function baseName(name){
+    const dot = name.lastIndexOf('.');
+    return dot > 0 ? name.slice(0, dot) : name;
+  }
+
+  function processItem(item, settings){
+    return new Promise((resolve) => {
+      const { targetW, targetH, fitMode, transparent, bgColor, bgTolerance, sharpen, format, jpgQuality } = settings;
+      const canvas = document.createElement('canvas');
+      canvas.width = targetW;
+      canvas.height = targetH;
+      const ctx = canvas.getContext('2d');
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+
+      const isJpg = format === 'jpg';
+      const sourceEl = transparent
+        ? buildCutoutCanvas(item.img, item.originalW, item.originalH, bgTolerance)
+        : item.img;
+      drawFit(ctx, sourceEl, item.originalW, item.originalH, targetW, targetH, fitMode, bgColor, transparent, isJpg);
+      applySharpen(ctx, targetW, targetH, sharpen);
+
+      const mime = isJpg ? 'image/jpeg' : 'image/png';
+      canvas.toBlob((blob) => {
+        if (item.resultURL) URL.revokeObjectURL(item.resultURL);
+        item.resultBlob = blob;
+        item.resultURL = URL.createObjectURL(blob);
+        item.resultW = targetW;
+        item.resultH = targetH;
+        item.resultExt = isJpg ? 'jpg' : 'png';
+
+        item.els.resultImg.src = item.resultURL;
+        item.els.resultImg.classList.remove('hidden');
+        item.els.placeholder.classList.add('hidden');
+        item.els.dimsTarget.textContent = targetW + '×' + targetH;
+        setStatus(item, 'done');
+        resolve();
+      }, mime, isJpg ? jpgQuality : undefined);
+    });
+  }
+
+  el.startBtn.addEventListener('click', async () => {
+    const settings = getSettings();
+    const pending = state.items.filter(it => it.img);
+    if (pending.length === 0) return;
+
+    el.startBtn.disabled = true;
+    el.progressWrap.classList.remove('hidden');
+    let done = 0;
+    el.progressLabel.textContent = `0 / ${pending.length}`;
+    el.progressFill.style.width = '0%';
+
+    for (const item of pending) {
+      setStatus(item, 'processing');
+      item.els.placeholder.textContent = '처리중…';
+      // eslint-disable-next-line no-await-in-loop
+      await processItem(item, settings);
+      done++;
+      el.progressLabel.textContent = `${done} / ${pending.length}`;
+      el.progressFill.style.width = Math.round((done / pending.length) * 100) + '%';
+      // yield to keep UI responsive
+      // eslint-disable-next-line no-await-in-loop
+      await new Promise(r => requestAnimationFrame(r));
+    }
+
+    el.startBtn.disabled = false;
+    updateFooter();
+    setTimeout(() => el.progressWrap.classList.add('hidden'), 1200);
+  });
+
+  function downloadSingle(item){
+    if (!item.resultBlob) return;
+    const a = document.createElement('a');
+    a.href = item.resultURL;
+    a.download = `${baseName(item.name)}_${item.resultW}x${item.resultH}.${item.resultExt}`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
+  el.zipBtn.addEventListener('click', async () => {
+    const doneItems = state.items.filter(it => it.status === 'done' && it.resultBlob);
+    if (doneItems.length === 0) return;
+    el.zipBtn.disabled = true;
+    el.zipBtn.textContent = 'ZIP 생성 중…';
+
+    const zip = new JSZip();
+    const usedNames = new Set();
+    doneItems.forEach(item => {
+      let filename = `${baseName(item.name)}_${item.resultW}x${item.resultH}.${item.resultExt}`;
+      let n = 1;
+      while (usedNames.has(filename)) {
+        filename = `${baseName(item.name)}_${item.resultW}x${item.resultH}_${n}.${item.resultExt}`;
+        n++;
+      }
+      usedNames.add(filename);
+      zip.file(filename, item.resultBlob);
+    });
+
+    const blob = await zip.generateAsync({ type: 'blob' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'upscaled_images.zip';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+
+    el.zipBtn.disabled = false;
+    el.zipBtn.textContent = 'ZIP으로 전체 다운로드';
+  });
+
+  updateFooter();
+})();
+</script>
+</body>
+</html>
